@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(zune-deploy)
+project(zune-deploy-native)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_FLAGS -fdiagnostics-color=always)
@@ -10,12 +10,13 @@ set(BUILD_FUSE       OFF CACHE BOOL "" FORCE)
 set(BUILD_PYTHON     OFF CACHE BOOL "" FORCE)
 set(BUILD_TAGLIB     OFF CACHE BOOL "" FORCE)
 set(BUILD_QT_UI      OFF CACHE BOOL "" FORCE)
-set(BUILD_SHARED_LIB OFF CACHE BOOL "" FORCE)
-add_subdirectory(lib/vendor/android-file-transfer-linux)
+set(BUILD_SHARED_LIB ON  CACHE BOOL "" FORCE)
+add_subdirectory(vendor/android-file-transfer-linux)
 
-add_executable(zune-depoly
+add_library(${PROJECT_NAME} SHARED
     src/main.cpp
+    src/api.cpp
 )
 
-target_include_directories(zune-depoly PRIVATE lib/vendor/android-file-transfer-linux/mtp)
-target_link_libraries(zune-depoly PRIVATE mtp-ng-static)
+target_include_directories(${PROJECT_NAME} PRIVATE vendor/android-file-transfer-linux/mtp)
+target_link_libraries(${PROJECT_NAME} PRIVATE mtp-ng)

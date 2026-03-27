@@ -10,11 +10,10 @@
 #include <usb/Context.h>
 #include <ptp/Device.h>
 
-std::string GetMtpzDataPath()
-	{
-		char * home = getenv("HOME");
-		return std::string(home? home: ".") + "/.mtpz-data";
-	}
+std::string GetMtpzDataPath() {
+	char * home = getenv("HOME");
+	return std::string(home? home: ".") + "/.mtpz-data";
+}
 
 int main() {
     auto device = mtp::Device::FindFirst();
