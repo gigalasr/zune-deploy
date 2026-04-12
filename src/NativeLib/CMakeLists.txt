@@ -14,7 +14,6 @@ set(BUILD_SHARED_LIB ON  CACHE BOOL "" FORCE)
 add_subdirectory(vendor/android-file-transfer-linux)
 
 add_library(${PROJECT_NAME} SHARED
-    src/main.cpp
     src/api.cpp
 )
 

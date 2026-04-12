@@ -1,5 +1,0 @@
-extern "C" {
-
-    int TestMethod();
-
-}

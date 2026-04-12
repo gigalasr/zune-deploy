@@ -1,0 +1,34 @@
+#include "mtpz/TrustedApp.h"
+#include "ptp/PipePacketer.h"
+#include "ptp/Session.h"
+#include <cstddef>
+#include <cstdint>
+#include <ptp/Device.h>
+
+enum class Result {
+    Ok = 0,
+
+    ErrorNoDevice,
+    ErrorHandshakeFailed,
+
+    ErrorBufferTooSmall
+};
+
+struct ZuneDevice {
+    using Ptr = ZuneDevice*;
+
+    ZuneDevice(mtp::DevicePtr& device, mtp::SessionPtr& session, mtp::TrustedAppPtr& ta);
+    ~ZuneDevice();
+
+    mtp::DevicePtr device;
+    mtp::SessionPtr session;
+    mtp::TrustedAppPtr ta;
+};
+
+extern "C" {
+    auto OpenConnection(ZuneDevice::Ptr* out_device_ptr) -> Result;
+    auto CloseConnection(ZuneDevice::Ptr device) -> void;
+
+    auto PollData(ZuneDevice::Ptr device, std::uint8_t* out_buffer, std::size_t size, std::size_t* out_bytesRead) -> Result;
+    auto SendData(ZuneDevice::Ptr device, std::uint8_t* buffer, std::size_t size) -> void;
+}
