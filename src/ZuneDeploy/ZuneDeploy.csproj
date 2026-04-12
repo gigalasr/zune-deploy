@@ -7,7 +7,18 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
   </PropertyGroup>
+
+  <ItemGroup>
+      <ProjectReference Include="../SourceGenerators/SourceGenerators.csproj" 
+                        OutputItemType="Analyzer"
+                        ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="..\NativeLib\src/enum.hpp" />
+  </ItemGroup>
 
   <Target Name="BuildNativeLib"
           BeforeTargets="Build"

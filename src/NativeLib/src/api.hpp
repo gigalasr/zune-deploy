@@ -5,14 +5,8 @@
 #include <cstdint>
 #include <ptp/Device.h>
 
-enum class Result {
-    Ok = 0,
+#include "enum.hpp"
 
-    ErrorNoDevice,
-    ErrorHandshakeFailed,
-
-    ErrorBufferTooSmall
-};
 
 struct ZuneDevice {
     using Ptr = ZuneDevice*;

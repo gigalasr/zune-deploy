@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.Marshalling;
 
-namespace ZuneDeploy;
+namespace ZuneDeploy.Native;
 
 static internal partial class MTP
 {

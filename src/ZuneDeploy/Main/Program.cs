@@ -1,12 +1,19 @@
 ﻿using System.Runtime.InteropServices;
-
-namespace ZuneDeploy;
+using ZuneDeploy.Native;
+using NativeGen;
+namespace ZuneDeploy.Main;
 
 class Program
 {
     static void Main(string[] args)
     {
-        int result = MTP.OpenConnection(out IntPtr device);
+        var result = (Result)MTP.OpenConnection(out IntPtr device);
+        if(result != Result.Ok)
+        {
+            Console.WriteLine($"Could not connect to deivce: {result}");
+            return;
+        }
+
 
         Console.WriteLine("Result = " + result);
         Console.WriteLine("Ptr = " + device);
@@ -16,7 +23,7 @@ class Program
         while (true)
         {
             Thread.Sleep(200);
-            int reuslt = MTP.PollData(device, buffer, buffer.Length, out int length);
+            Result reuslt = (Result)MTP.PollData(device, buffer, buffer.Length, out int length);
             Console.WriteLine("Polling " + result + " len " + length);
         }
 
