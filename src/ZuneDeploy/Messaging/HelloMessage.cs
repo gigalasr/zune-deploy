@@ -13,15 +13,12 @@ namespace ZuneDeploy.Messaging;
  * 12 -  77: Device Name (UTF-16LE)
  * 78 - 111: 0 Padding
  */
-internal static class HelloMessage
-{
+internal static class HelloMessage {
     private const int MESSAGE_LEN = 112;
     private const int MAX_DEVICE_NAME_LEN = 66;
 
-    public static byte[] CreateMessage(string deviceName = "Zune HD")
-    {
-        if(deviceName.Length > MAX_DEVICE_NAME_LEN)
-        {
+    public static byte[] CreateMessage(string deviceName = "Zune HD") {
+        if (deviceName.Length > MAX_DEVICE_NAME_LEN) {
             throw new ArgumentException($"Device Name must not be longar than {MAX_DEVICE_NAME_LEN} characters");
         }
 

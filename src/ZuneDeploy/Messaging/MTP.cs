@@ -3,8 +3,7 @@ using System.Runtime.InteropServices.Marshalling;
 
 namespace ZuneDeploy.Messaging;
 
-static internal partial class MTP
-{
+static internal partial class MTP {
     [LibraryImport("libzune-deploy-native.so")]
     internal static partial int OpenConnection(out IntPtr device);
 

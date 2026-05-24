@@ -9,16 +9,12 @@ namespace SourceGenerators;
 
 
 [Generator]
-public class NativeEnumSourceGenerator : ISourceGenerator
-{
-    public void Execute(GeneratorExecutionContext context)
-    {
+public class NativeEnumSourceGenerator : ISourceGenerator {
+    public void Execute(GeneratorExecutionContext context) {
         StringBuilder sourceBuilder = new StringBuilder("namespace NativeGen;\n");
 
-        foreach(var file in context.AdditionalFiles)
-        {
-            if(file.Path.EndsWith(".hpp"))
-            {
+        foreach (var file in context.AdditionalFiles) {
+            if (file.Path.EndsWith(".hpp")) {
                 Generate(file.Path, sourceBuilder);
             }
         }
@@ -27,16 +23,13 @@ public class NativeEnumSourceGenerator : ISourceGenerator
     }
 
 
-    private void Generate(string file, StringBuilder builder)
-    {
+    private void Generate(string file, StringBuilder builder) {
         const string ENUM_KEY = "enum class";
         string[] lines = File.ReadAllLines(file);
         bool insideEnum = false;
 
-        foreach(var line in lines)
-        {
-            if(!insideEnum && line.Contains(ENUM_KEY)) 
-            {
+        foreach (var line in lines) {
+            if (!insideEnum && line.Contains(ENUM_KEY)) {
                 insideEnum = true;
 
                 int start = line.IndexOf(ENUM_KEY) + ENUM_KEY.Length;
@@ -44,23 +37,19 @@ public class NativeEnumSourceGenerator : ISourceGenerator
                 string name = line.Substring(start, end - start);
 
                 builder.AppendLine($"public enum {name} : int {{");
-            } 
-            else if(insideEnum && line.Contains("}")) 
-            {
+            } else if (insideEnum && line.Contains("}")) {
                 insideEnum = false;
                 builder.AppendLine("}\n");
-            } 
-            else if(insideEnum) {
-                var pair = line.Split('=');    
-                if(pair.Length != 2)
-                {
+            } else if (insideEnum) {
+                var pair = line.Split('=');
+                if (pair.Length != 2) {
                     continue;
                 }
 
                 string name = pair[0].Trim();
                 string value = pair[1].Replace(',', ' ').Trim();
 
-                builder.AppendLine($"   {name} = {value},");    
+                builder.AppendLine($"   {name} = {value},");
             }
         }
     }
