@@ -7,6 +7,7 @@ namespace ZuneDeploy.Core;
  * Next Steps:
  * - Implement Command Parsing
  *   - Classes for at least the following commands:
+ *   - OR implement as events in Device.cs
  *     - RequestConnect
  *     - AcceptRequest
  *     - AcknowledgeAccept
@@ -14,11 +15,12 @@ namespace ZuneDeploy.Core;
  *     - StreamClosed
  *     - KeepAlive
  *     - DataConsumed
+ * - Implement Command Creation
+ * - Implement Reader & Writer with control flow 
  * - Implement XNA Brokered Channel 
- * - Implement XNA Request & Response Parsing
+ * - Implement XNA Message Request & Response Parsing
  * - Implement Deploy, Launch, Container XNA Brokered Channels 
  */
-
 
 class Program {
     private static Device? _device;

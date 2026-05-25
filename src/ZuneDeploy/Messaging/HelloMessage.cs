@@ -23,8 +23,8 @@ internal static class HelloMessage {
         }
 
         var buffer = new byte[MESSAGE_LEN];
-        buffer[7] = 1;
-        buffer[8] = 2;
+        buffer[6] = 1;
+        buffer[7] = 2;
 
         var nameBytes = Encoding.Unicode.GetBytes(deviceName);
         nameBytes.CopyTo(buffer, 12);
