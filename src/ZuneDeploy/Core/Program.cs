@@ -5,18 +5,12 @@ namespace ZuneDeploy.Core;
 
 /*
  * Next Steps:
- * - Implement Command Parsing
- *   - Classes for at least the following commands:
- *   - OR implement as events in Device.cs
- *     - RequestConnect
- *     - AcceptRequest
- *     - AcknowledgeAccept
- *     - Disconnect
- *     - StreamClosed
- *     - KeepAlive
- *     - DataConsumed
- * - Implement Command Creation
- * - Implement Reader & Writer with control flow 
+ * - NEXT: Split Packet Class Into PacketBuilder and PacketParser
+ *   - Device owns PacketBuilder and PacketParser 
+ *   - PacketParser can have events for all commands, device subscribes
+ *   - Device uses PacketBuilder as a demuxer for the streams
+ *   - Device publishes messages from PackerParser to the correct streams   
+ * - Implement PacketStream Class -v
  * - Implement XNA Brokered Channel 
  * - Implement XNA Message Request & Response Parsing
  * - Implement Deploy, Launch, Container XNA Brokered Channels 

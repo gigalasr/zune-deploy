@@ -27,7 +27,7 @@ internal enum CommandType : byte {
 }
 
 internal static class CommandFactory {
-    public static RecievableCommand FromDeviceBuffer(ReadOnlySpan<byte> data) {
+    public static ReceivableCommand FromDeviceBuffer(ReadOnlySpan<byte> data) {
         if (data.Length < 1) {
             throw new ArgumentException("Command buffer needs a length of at least 1");
         }
@@ -91,7 +91,7 @@ internal abstract class SendableCommand : ICommand {
     public required byte[] RawBytes { init; get; }
 }
 
-internal interface RecievableCommand : ICommand { }
+internal abstract class ReceivableCommand : ICommand { }
 
 /// <summary>
 /// Request to open a stream for a specific service.
@@ -142,7 +142,7 @@ internal class CloseStreamCommand : SendableCommand {
 /// <summary>
 /// Sent by the Zune to close a stream.
 /// </summary>
-internal class StreamClosedCommand : RecievableCommand {
+internal class StreamClosedCommand : ReceivableCommand {
     public readonly byte StreamId;
 
     public StreamClosedCommand(ReadOnlySpan<byte> data) {
@@ -154,7 +154,7 @@ internal class StreamClosedCommand : RecievableCommand {
 /// Sent by the Zune when the requested stream was opened.
 /// The Zune expects a <see cref="AckOpenCommand"/> as a response.  
 /// </summary>
-internal class StreamOpenedCommand : RecievableCommand {
+internal class StreamOpenedCommand : ReceivableCommand {
     public readonly byte StreamId;
     public readonly ushort BufferSize;
 
@@ -166,7 +166,7 @@ internal class StreamOpenedCommand : RecievableCommand {
 /// <summary>
 /// Sent by the Zune to acknowledge an <see cref="CancelOpenCommand"/> request
 /// </summary> 
-internal class AckCancelCommand : RecievableCommand {
+internal class AckCancelCommand : ReceivableCommand {
     public readonly byte StreamId; // Guess, but other commands follow a similar pattern
 
     public AckCancelCommand(ReadOnlySpan<byte> data) {
@@ -177,7 +177,7 @@ internal class AckCancelCommand : RecievableCommand {
 /// <summary>
 /// Sent by the Zune when refusing an <see cref="OpenStreamCommand"/> request
 /// </summary>
-internal class RequestRefusedCommand : RecievableCommand {
+internal class RequestRefusedCommand : ReceivableCommand {
     public readonly byte StreamId;
 
     public RequestRefusedCommand(ReadOnlySpan<byte> data) {
@@ -189,7 +189,7 @@ internal class RequestRefusedCommand : RecievableCommand {
 /// Maybe sent by the Zune to ack <see cref="DisconnectCommand"/>. 
 /// However the host is probably too fast when closing.
 /// </summary>
-internal class AckDisconnectCommand : RecievableCommand {
+internal class AckDisconnectCommand : ReceivableCommand {
     public readonly byte Arg;
 
     public AckDisconnectCommand(ReadOnlySpan<byte> data) {
@@ -200,7 +200,7 @@ internal class AckDisconnectCommand : RecievableCommand {
 /// <summary>
 /// Sent by the Zune when it is rebooting
 /// </summary>
-internal class RebootingCommand : RecievableCommand {
+internal class RebootingCommand : ReceivableCommand {
     /// <summary>
     /// The original driver closes all streams when the flag is 0
     /// </summary>
@@ -214,7 +214,7 @@ internal class RebootingCommand : RecievableCommand {
 /// <summary>
 /// Sent by the Zune as a ping / keep alive
 /// </summary>
-internal class KeepAliveCommand : RecievableCommand {
+internal class KeepAliveCommand : ReceivableCommand {
     public readonly byte Flags;
 
     public KeepAliveCommand(ReadOnlySpan<byte> data) {
@@ -227,7 +227,7 @@ internal class KeepAliveCommand : RecievableCommand {
 /// The host has to keep track of the available space in the Zune's buffer.
 /// I.e. <see cref="BytesConsumed"/> can be added to the capacity of the relevant stream. 
 /// </summary>
-internal class DataProcessedCommand : RecievableCommand {
+internal class DataProcessedCommand : ReceivableCommand {
     public readonly byte StreamId;
     public readonly ushort BytesConsumed;
 
