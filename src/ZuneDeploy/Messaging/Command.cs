@@ -5,15 +5,20 @@ using System.Text;
 namespace ZuneDeploy.Messaging;
 
 internal enum CommandType : byte {
+    // Send
     OpenStream = 161,
-    StreamOpened = 162,
     CancelOpen = 163,
     AckOpen = 164,
+    Disconnect = 177,
+
+    // Send & Recieve 
+    CloseStream = 193,
+
+    // Recieve
+    StreamOpened = 162,
     AckCancel = 165,
     RequestRefused = 166,
-    Disconnect = 177,
     AckDisconnect = 178,
-    CloseStream = 193,
     HostError = 225,   // Not used?
     ClientError = 226, // Not used?
     Rebooting = 241,
@@ -21,17 +26,27 @@ internal enum CommandType : byte {
     DataProcessed = 210,
 }
 
-internal class Command {
-    private ReadOnlyMemory<byte> _data;
-    public CommandType Type { get; init; }
-
-    public static Command FromBuffer(ReadOnlyMemory<byte> data) {
+internal static class CommandFactory {
+    public static RecievableCommand FromDeviceBuffer(ReadOnlySpan<byte> data) {
         if (data.Length < 1) {
             throw new ArgumentException("Command buffer needs a length of at least 1");
         }
 
-        byte type = data.Span[0];
-        return new Command((CommandType)type, data.Slice(1));
+        CommandType type = (CommandType)data[0];
+        ReadOnlySpan<byte> args = data.Slice(1);
+
+        switch (type) {
+            case CommandType.StreamOpened: return new StreamOpenedCommand(args);
+            case CommandType.AckCancel: return new AckCancelCommand(args);
+            case CommandType.RequestRefused: return new RequestRefusedCommand(args);
+            case CommandType.AckDisconnect: return new AckDisconnectCommand(args);
+            case CommandType.Rebooting: return new RebootingCommand(args);
+            case CommandType.KeepAlive: return new KeepAliveCommand(args);
+            case CommandType.DataProcessed: return new DataProcessedCommand(args);
+            case CommandType.CloseStream: return new StreamClosedCommand(args);
+            default:
+                throw new Exception($"Unkown Command Type: {type}");
+        }
     }
 
     public static byte[] FromByte(CommandType type, byte arg) {
@@ -68,18 +83,15 @@ internal class Command {
         }
         byteArg = data[0];
     }
-
-    private Command(CommandType type, ReadOnlyMemory<byte> data) {
-        _data = data;
-        Type = type;
-    }
 }
 
-internal abstract class SendableCommand {
+internal interface ICommand { }
+
+internal abstract class SendableCommand : ICommand {
     public required byte[] RawBytes { init; get; }
 }
 
-internal interface RecievableCommand { }
+internal interface RecievableCommand : ICommand { }
 
 /// <summary>
 /// Request to open a stream for a specific service.
@@ -87,7 +99,54 @@ internal interface RecievableCommand { }
 /// </summary>
 internal class OpenStreamCommand : SendableCommand {
     public OpenStreamCommand(byte streamId, string serviceName) {
-        RawBytes = Command.FromByteAndString(CommandType.OpenStream, streamId, serviceName);
+        RawBytes = CommandFactory.FromByteAndString(CommandType.OpenStream, streamId, serviceName);
+    }
+}
+
+/// <summary>
+/// Sent to the Zune in response to <see cref="StreamOpenedCommand"/>
+/// </summary>
+internal class AckOpenCommand : SendableCommand {
+    public AckOpenCommand(byte streamId) {
+        RawBytes = CommandFactory.FromByte(CommandType.AckOpen, streamId);
+    }
+}
+
+/// <summary>
+/// Sent to the Zune to close an XNA Session
+/// </summary>
+internal class DisconnectCommand : SendableCommand {
+    public DisconnectCommand(byte arg = 0) {
+        RawBytes = CommandFactory.FromByte(CommandType.Disconnect, arg);
+    }
+}
+
+/// <summary>
+/// Cancels an <see cref="OpenStreamCommand"/> request
+/// </summary> 
+internal class CancelOpenCommand : SendableCommand {
+    public CancelOpenCommand(byte streamId) {
+        RawBytes = CommandFactory.FromByte(CommandType.CancelOpen, streamId);
+    }
+}
+
+/// <summary>
+/// Sent to the Zune to close a stream.
+/// </summary>
+internal class CloseStreamCommand : SendableCommand {
+    public CloseStreamCommand(byte streamId) {
+        RawBytes = CommandFactory.FromByte(CommandType.CloseStream, streamId);
+    }
+}
+
+/// <summary>
+/// Sent by the Zune to close a stream.
+/// </summary>
+internal class StreamClosedCommand : RecievableCommand {
+    public readonly byte StreamId;
+
+    public StreamClosedCommand(ReadOnlySpan<byte> data) {
+        CommandFactory.ParseByte(data, out StreamId);
     }
 }
 
@@ -100,25 +159,7 @@ internal class StreamOpenedCommand : RecievableCommand {
     public readonly ushort BufferSize;
 
     public StreamOpenedCommand(ReadOnlySpan<byte> data) {
-        Command.ParseByteAndUShort(data, out StreamId, out BufferSize);
-    }
-}
-
-/// <summary>
-/// Sent to the Zune in response to <see cref="StreamOpenedCommand"/>
-/// </summary>
-internal class AckOpenCommand : SendableCommand {
-    public AckOpenCommand(byte streamId) {
-        RawBytes = Command.FromByte(CommandType.AckOpen, streamId);
-    }
-}
-
-/// <summary>
-/// Cancels an <see cref="OpenStreamCommand"/> request
-/// </summary> 
-internal class CancelOpenCommand : SendableCommand {
-    public CancelOpenCommand(byte streamId) {
-        RawBytes = Command.FromByte(CommandType.CancelOpen, streamId);
+        CommandFactory.ParseByteAndUShort(data, out StreamId, out BufferSize);
     }
 }
 
@@ -129,7 +170,7 @@ internal class AckCancelCommand : RecievableCommand {
     public readonly byte StreamId; // Guess, but other commands follow a similar pattern
 
     public AckCancelCommand(ReadOnlySpan<byte> data) {
-        Command.ParseByte(data, out StreamId);
+        CommandFactory.ParseByte(data, out StreamId);
     }
 }
 
@@ -140,16 +181,7 @@ internal class RequestRefusedCommand : RecievableCommand {
     public readonly byte StreamId;
 
     public RequestRefusedCommand(ReadOnlySpan<byte> data) {
-        Command.ParseByte(data, out StreamId);
-    }
-}
-
-/// <summary>
-/// Sent to the Zune to close an XNA Session
-/// </summary>
-internal class DisconnectCommand : SendableCommand {
-    public DisconnectCommand(byte arg = 0) {
-        RawBytes = Command.FromByte(CommandType.Disconnect, arg);
+        CommandFactory.ParseByte(data, out StreamId);
     }
 }
 
@@ -157,26 +189,11 @@ internal class DisconnectCommand : SendableCommand {
 /// Maybe sent by the Zune to ack <see cref="DisconnectCommand"/>. 
 /// However the host is probably too fast when closing.
 /// </summary>
-internal class AckDisconnect : RecievableCommand {
+internal class AckDisconnectCommand : RecievableCommand {
     public readonly byte Arg;
 
-    public AckDisconnect(ReadOnlySpan<byte> data) {
-        Command.ParseByte(data, out Arg);
-    }
-}
-
-/// <summary>
-/// Sent or recieved by the Zune to close a stream.
-/// </summary>
-internal class CloseStreamCommand : SendableCommand, RecievableCommand {
-    public readonly byte StreamId;
-
-    public CloseStreamCommand(ReadOnlySpan<byte> data) {
-        Command.ParseByte(data, out StreamId);
-    }
-
-    public CloseStreamCommand(byte streamId) {
-        RawBytes = Command.FromByte(CommandType.CloseStream, streamId);
+    public AckDisconnectCommand(ReadOnlySpan<byte> data) {
+        CommandFactory.ParseByte(data, out Arg);
     }
 }
 
@@ -190,7 +207,7 @@ internal class RebootingCommand : RecievableCommand {
     public readonly byte Flags;
 
     public RebootingCommand(ReadOnlySpan<byte> data) {
-        Command.ParseByte(data, out Flags);
+        CommandFactory.ParseByte(data, out Flags);
     }
 }
 
@@ -201,7 +218,7 @@ internal class KeepAliveCommand : RecievableCommand {
     public readonly byte Flags;
 
     public KeepAliveCommand(ReadOnlySpan<byte> data) {
-        Command.ParseByte(data, out Flags);
+        CommandFactory.ParseByte(data, out Flags);
     }
 }
 
@@ -215,6 +232,6 @@ internal class DataProcessedCommand : RecievableCommand {
     public readonly ushort BytesConsumed;
 
     public DataProcessedCommand(ReadOnlySpan<byte> data) {
-        Command.ParseByteAndUShort(data, out StreamId, out BytesConsumed);
+        CommandFactory.ParseByteAndUShort(data, out StreamId, out BytesConsumed);
     }
 }

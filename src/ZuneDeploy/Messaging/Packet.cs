@@ -29,7 +29,7 @@ internal class Packet {
     private const int PAYLOAD_END = SEQID_LENGTH + PAYLOAD_LENGTH - 1;
 
     private byte[] _buffer;
-    private List<Command> _commands;
+    private List<ICommand> _commands;
     private List<Message> _messages;
     public int SequenceId { get; init; }
 
@@ -45,7 +45,7 @@ internal class Packet {
         return new Packet(null, sequenceId);
     }
 
-    public void WriteCommand(Command command) {
+    public void WriteCommand(SendableCommand command) {
 
     }
 
@@ -53,7 +53,7 @@ internal class Packet {
 
     }
 
-    public ReadOnlyCollection<Command> GetCommands() {
+    public ReadOnlyCollection<ICommand> GetCommands() {
         return _commands.AsReadOnly();
     }
 
@@ -68,7 +68,7 @@ internal class Packet {
             _buffer = buffer;
         }
 
-        _commands = new List<Command>();
+        _commands = new List<ICommand>();
         _messages = new List<Message>();
         SequenceId = sequenceId;
 
@@ -121,7 +121,7 @@ internal class Packet {
             var data = _buffer.AsMemory(offset + 3, payloadLen);
 
             if (streamId == 0) {
-                _commands.Add(Command.FromBuffer(data));
+                _commands.Add(CommandFactory.FromDeviceBuffer(data.Span));
             } else {
                 _messages.Add(new Message(streamId, data));
             }
