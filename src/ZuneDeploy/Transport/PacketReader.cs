@@ -19,7 +19,7 @@ namespace ZuneDeploy.Transport;
  * Terminator
  * [0][0][0]
  */
-internal class PacketParser {
+internal class PacketReader {
     private const int PACKET_LENGTH = 1264;
     private const int PAYLOAD_LENGTH = 1236;
     private const int SEQID_LENGTH = 4;
@@ -27,7 +27,7 @@ internal class PacketParser {
 
     private int _currentSequenceId;
 
-    public PacketParser(int sequenceId = 0) {
+    public PacketReader(int sequenceId = 0) {
         _currentSequenceId = sequenceId;
     }
 

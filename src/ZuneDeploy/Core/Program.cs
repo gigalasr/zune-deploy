@@ -4,29 +4,35 @@ using NativeGen;
 namespace ZuneDeploy.Core;
 
 /*
- * Next Step: Implement the ServiceStream Class using channels 
+ * Next Step:
+ *   - Each Stream has StreamState (Opening, Open, Closing, Closed). Set via synchornised getters and setters.
+ *   - Device owns all streams
+ *   - Device.ConnectToStream -> Device has a Event or WaitHandle that will get signaled by StreamOpened event
+ *     - ToDo: how to make thread safe? simply use lock on object?
+ *   - PacketReader pushes to the correct queue directly?
+ *   - PacketWriter reads from stream queues, TryTake, and if something is there handle write similarly to ServiceStream. 
  */
 class Program {
-    private static Device? _device;
+    private static Client? _client;
 
     static void Main(string[] args) {
         Console.CancelKeyPress += OnExit;
 
-        var result = Device.TryConnect(out Device? device);
+        var result = Client.TryConnect(out Client? device);
         if (result != Result.Ok || device == null) {
             Console.WriteLine($"Could not connect to deivce: {result}");
             return;
         }
 
-        _device = device;
+        _client = device;
 
         while (true) { }
     }
 
     private static void OnExit(object? sender, ConsoleCancelEventArgs e) {
-        if (_device != null) {
-            _device.Close();
-            _device = null;
+        if (_client != null) {
+            _client.Close();
+            _client = null;
         }
     }
 }

@@ -9,16 +9,7 @@ namespace ZuneDeploy.Transport;
 /// Handles transport layer communication with the Zune, handshake, polling, etc.
 /// Batches multiple Packets and Messages into a Packet, parses incoming packets into message and commands.
 /// </summary>
-internal class Device {
-    public event EventHandler<StreamOpenedCommand>? OnStreamOpened;
-    public event EventHandler<AckCancelCommand>? OnAckCancel;
-    public event EventHandler<RequestRefusedCommand>? OnRequestRefued;
-    public event EventHandler<RebootingCommand>? OnHostRebooting;
-    public event EventHandler<KeepAliveCommand>? OnKeepAlive;
-    public event EventHandler<DataProcessedCommand>? OnDataProcessed;
-    public event EventHandler<StreamClosedCommand>? OnStreamClosed;
-    public event EventHandler<AckDisconnectCommand>? OnAckDisconnect;
-
+internal class Client {
     private const int POLL_TIMEOUT = 200;
     private IntPtr _deviceHandle;
     private Thread _connectionThread;
@@ -26,18 +17,23 @@ internal class Device {
     private BlockingCollection<byte[]> _recieveQueue;
     private BlockingCollection<byte[]> _sendQueue;
 
-    private PacketParser _packetParser;
+    private PacketReader _packetReader;
+    private PacketWriter _packetWriter;
 
-    public static Result TryConnect(out Device? device) {
+    public static Result TryConnect(out Client? device) {
         Console.WriteLine("Connecting...");
         var result = (Result)MTP.OpenConnection(out IntPtr deviceHandle);
         if (result == Result.Ok) {
-            device = new Device(deviceHandle);
+            device = new Client(deviceHandle);
         } else {
             device = null;
         }
 
         return result;
+    }
+
+    public ServiceStream ConnectToService(Guid serviceId) {
+        throw new NotImplementedException();
     }
 
     public void Send(SendableCommand command) {
@@ -64,10 +60,11 @@ internal class Device {
         MTP.CloseConnection(_deviceHandle);
     }
 
-    private Device(IntPtr deviceHandle) {
+    private Client(IntPtr deviceHandle) {
         _deviceHandle = deviceHandle;
 
-        _packetParser = new PacketParser();
+        _packetReader = new PacketReader();
+        _packetWriter = new PacketWriter();
         _recieveQueue = new BlockingCollection<byte[]>();
         _sendQueue = new BlockingCollection<byte[]>();
 
@@ -78,6 +75,7 @@ internal class Device {
     }
 
     private void ShakeHands() {
+        // TODO: Move handshake into native lib
         Console.WriteLine("Waiting for Handshake");
 
         var firstPacket = Read();
@@ -114,7 +112,7 @@ internal class Device {
 
             if (length != 0) {
                 _recieveQueue.Add((byte[])buffer.Clone());
-                _packetParser.FromDeviceBuffer(buffer, out List<Message> messages, out List<ReceivableCommand> commands);
+                _packetReader.FromDeviceBuffer(buffer, out List<Message> messages, out List<ReceivableCommand> commands);
             }
         }
     }

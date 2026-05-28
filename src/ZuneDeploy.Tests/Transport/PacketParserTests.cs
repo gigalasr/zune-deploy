@@ -167,7 +167,7 @@ public class PacketParserTests {
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
         };
 
-        PacketParser parser = new PacketParser(6);
+        PacketReader parser = new PacketReader(6);
         parser.FromDeviceBuffer(rawPacketBytes, out List<Message> messages, out List<ReceivableCommand> commands);
 
         Assert.Equal(2, commands.Count);
@@ -340,7 +340,7 @@ public class PacketParserTests {
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
         };
 
-        PacketParser parser = new PacketParser(7);
+        PacketReader parser = new PacketReader(7);
         parser.FromDeviceBuffer(rawPacketBytes, out List<Message> messages, out List<ReceivableCommand> commands);
 
         Assert.Empty(commands);
