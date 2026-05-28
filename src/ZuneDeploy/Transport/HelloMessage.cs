@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace ZuneDeploy.Messaging;
+namespace ZuneDeploy.Transport;
 
 /**
  * The first message that the host sends the Zune after the first message from the zune is recieved
@@ -18,15 +18,15 @@ internal static class HelloMessage {
     private const int MAX_DEVICE_NAME_LEN = 66;
 
     public static byte[] CreateMessage(string deviceName = "Zune HD") {
-        if (deviceName.Length > MAX_DEVICE_NAME_LEN) {
-            throw new ArgumentException($"Device Name must not be longar than {MAX_DEVICE_NAME_LEN} characters");
-        }
-
         var buffer = new byte[MESSAGE_LEN];
         buffer[6] = 1;
         buffer[7] = 2;
 
         var nameBytes = Encoding.BigEndianUnicode.GetBytes(deviceName);
+        if (nameBytes.Length > MAX_DEVICE_NAME_LEN) {
+            throw new ArgumentException($"Device Name must not be longar than {MAX_DEVICE_NAME_LEN} bytes");
+        }
+
         nameBytes.CopyTo(buffer, 12);
 
         return buffer;

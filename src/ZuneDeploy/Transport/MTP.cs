@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.Marshalling;
 
-namespace ZuneDeploy.Messaging;
+namespace ZuneDeploy.Transport;
 
 static internal partial class MTP {
     [LibraryImport("libzune-deploy-native.so")]

@@ -2,7 +2,7 @@ using System;
 using System.Buffers.Binary;
 using System.Text;
 
-namespace ZuneDeploy.Messaging;
+namespace ZuneDeploy.Transport;
 
 internal enum CommandType : byte {
     // Send

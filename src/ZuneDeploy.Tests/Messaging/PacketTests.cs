@@ -1,11 +1,11 @@
-using ZuneDeploy.Messaging;
+using ZuneDeploy.Transport;
 
 namespace ZuneDeploy.Tests;
 
 public class PacketTests {
     [Fact]
     public void ParseMultipleCommands() {
-        const int expectedSequenceId = 6;
+        //const int expectedSequenceId = 6;
         byte[] rawPacketBytes = {
             0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x04, 0xa2,
             0x02, 0x10, 0x00, 0x00, 0x00, 0x02, 0xc1, 0x01,
@@ -167,18 +167,18 @@ public class PacketTests {
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
         };
 
-        Packet packet = Packet.FromDeviceBuffer(rawPacketBytes, expectedSequenceId);
+        PacketParser parser = new PacketParser(6);
+        parser.FromDeviceBuffer(rawPacketBytes, out List<Message> messages, out List<ReceivableCommand> commands);
 
-        Assert.Equal(expectedSequenceId, packet.SequenceId);
-        Assert.Equal(2, packet.GetCommands().Count);
-        Assert.True(packet.GetCommands()[0] is StreamOpenedCommand);
-        Assert.True(packet.GetCommands()[1] is StreamClosedCommand);
-        Assert.Empty(packet.GetMessages());
+        Assert.Equal(2, commands.Count);
+        Assert.True(commands[0] is StreamOpenedCommand);
+        Assert.True(commands[1] is StreamClosedCommand);
+        Assert.Empty(messages);
     }
 
     [Fact]
     public void ParseSingleMessage() {
-        const int expectedSequenceId = 7;
+        //const int expectedSequenceId = 7;
         byte[] rawPacketBytes = {
             0x00, 0x00, 0x00, 0x07, 0x02, 0x00, 0x0e, 0x58,
             0x4e, 0x41, 0x46, 0x54, 0x57, 0x02, 0x00, 0x00,
@@ -340,10 +340,10 @@ public class PacketTests {
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
         };
 
-        Packet packet = Packet.FromDeviceBuffer(rawPacketBytes, expectedSequenceId);
+        PacketParser parser = new PacketParser(7);
+        parser.FromDeviceBuffer(rawPacketBytes, out List<Message> messages, out List<ReceivableCommand> commands);
 
-        Assert.Equal(expectedSequenceId, packet.SequenceId);
-        Assert.Empty(packet.GetCommands());
-        Assert.Single(packet.GetMessages());
+        Assert.Empty(commands);
+        Assert.Single(messages);
     }
 }

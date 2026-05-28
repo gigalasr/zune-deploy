@@ -1,21 +1,11 @@
-﻿using ZuneDeploy.Messaging;
+﻿using ZuneDeploy.Transport;
 using NativeGen;
 
 namespace ZuneDeploy.Core;
 
 /*
- * Next Steps:
- * - NEXT: Split Packet Class Into PacketBuilder and PacketParser
- *   - Device owns PacketBuilder and PacketParser 
- *   - PacketParser can have events for all commands, device subscribes
- *   - Device uses PacketBuilder as a demuxer for the streams
- *   - Device publishes messages from PackerParser to the correct streams   
- * - Implement PacketStream Class -v
- * - Implement XNA Brokered Channel 
- * - Implement XNA Message Request & Response Parsing
- * - Implement Deploy, Launch, Container XNA Brokered Channels 
+ * Next Step: Implement the ServiceStream Class using channels 
  */
-
 class Program {
     private static Device? _device;
 

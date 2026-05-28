@@ -1,6 +1,6 @@
 using System;
 
-namespace ZuneDeploy.Messaging;
+namespace ZuneDeploy.Transport;
 
 internal class Message {
     public Message(byte streamId, ReadOnlyMemory<byte> buffer) {

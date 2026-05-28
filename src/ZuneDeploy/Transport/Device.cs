@@ -3,16 +3,30 @@
 using System.Collections.Concurrent;
 using NativeGen;
 
-namespace ZuneDeploy.Messaging;
+namespace ZuneDeploy.Transport;
 
+/// <summary>
+/// Handles transport layer communication with the Zune, handshake, polling, etc.
+/// Batches multiple Packets and Messages into a Packet, parses incoming packets into message and commands.
+/// </summary>
 internal class Device {
-    private const int POLL_TIMEOUT = 200;
+    public event EventHandler<StreamOpenedCommand>? OnStreamOpened;
+    public event EventHandler<AckCancelCommand>? OnAckCancel;
+    public event EventHandler<RequestRefusedCommand>? OnRequestRefued;
+    public event EventHandler<RebootingCommand>? OnHostRebooting;
+    public event EventHandler<KeepAliveCommand>? OnKeepAlive;
+    public event EventHandler<DataProcessedCommand>? OnDataProcessed;
+    public event EventHandler<StreamClosedCommand>? OnStreamClosed;
+    public event EventHandler<AckDisconnectCommand>? OnAckDisconnect;
 
+    private const int POLL_TIMEOUT = 200;
     private IntPtr _deviceHandle;
     private Thread _connectionThread;
+    private volatile bool _conThreadRunning = true;
     private BlockingCollection<byte[]> _recieveQueue;
     private BlockingCollection<byte[]> _sendQueue;
-    private volatile bool _conThreadRunning = true;
+
+    private PacketParser _packetParser;
 
     public static Result TryConnect(out Device? device) {
         Console.WriteLine("Connecting...");
@@ -24,6 +38,14 @@ internal class Device {
         }
 
         return result;
+    }
+
+    public void Send(SendableCommand command) {
+
+    }
+
+    public void Send(Message message) {
+
     }
 
     public void Send(byte[] data) {
@@ -44,8 +66,11 @@ internal class Device {
 
     private Device(IntPtr deviceHandle) {
         _deviceHandle = deviceHandle;
+
+        _packetParser = new PacketParser();
         _recieveQueue = new BlockingCollection<byte[]>();
         _sendQueue = new BlockingCollection<byte[]>();
+
         _connectionThread = new Thread(PollAndSendData);
         _connectionThread.Start();
 
@@ -89,12 +114,8 @@ internal class Device {
 
             if (length != 0) {
                 _recieveQueue.Add((byte[])buffer.Clone());
+                _packetParser.FromDeviceBuffer(buffer, out List<Message> messages, out List<ReceivableCommand> commands);
             }
         }
     }
-
-    private void DispatchCommandHandler() {
-
-    }
-
 }
