@@ -2,7 +2,7 @@ using ZuneDeploy.Transport;
 
 namespace ZuneDeploy.Tests;
 
-public class PacketTests {
+public class PacketParserTests {
     [Fact]
     public void ParseMultipleCommands() {
         //const int expectedSequenceId = 6;
