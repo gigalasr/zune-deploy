@@ -4,30 +4,27 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <string>
-#include <cstdlib>
 
+#include <mtpz/TrustedApp.h>
 #include <ptp/Device.h>
 #include <ptp/PipePacketer.h>
-#include <usb/DeviceDescriptor.h>
-#include <mtpz/TrustedApp.h>
 #include <usb/Context.h>
-#include <ptp/Device.h>
+#include <usb/DeviceDescriptor.h>
 #include <vector>
 
 std::string GetMtpzDataPath() {
-	char * home = getenv("HOME");
-	return std::string(home? home: ".") + "/.mtpz-data";
+    char* home = getenv("HOME");
+    return std::string(home ? home : ".") + "/.mtpz-data";
 }
 
 ZuneDevice::ZuneDevice(mtp::DevicePtr& device, mtp::SessionPtr& session, mtp::TrustedAppPtr& ta)
     : device(device), session(session), ta(ta) {}
 
-
 ZuneDevice::ZuneDevice(mtp::DevicePtr& device, mtp::SessionPtr& session)
     : device(device), session(session), ta(nullptr) {}
-
 
 ZuneDevice::~ZuneDevice() {}
 
@@ -35,9 +32,11 @@ auto OpenConnection(ZuneDevice::Ptr* out_devicePtr) -> Result {
     *out_devicePtr = 0;
 
     auto device = mtp::Device::FindFirst();
-    if(!device) {
+    if (!device) {
         return Result::ErrorNoDevice;
     }
+
+    // TODO: Send missing MTP commands
 
     auto session = device->OpenSession(1);
 
@@ -52,7 +51,7 @@ auto OpenConnection(ZuneDevice::Ptr* out_devicePtr) -> Result {
     if (!sessionAuthenticated) {
         auto ta = mtp::TrustedApp::Create(session, GetMtpzDataPath());
 
-        if(!ta) {
+        if (!ta) {
             return Result::ErrorHandshakeFailed;
         }
 
@@ -63,6 +62,8 @@ auto OpenConnection(ZuneDevice::Ptr* out_devicePtr) -> Result {
         *out_devicePtr = new ZuneDevice(device, session);
     }
 
+    // TODO: Handshake
+
     return Result::Ok;
 }
 
@@ -71,15 +72,16 @@ auto CloseConnection(ZuneDevice::Ptr device) -> void {
     delete device;
 }
 
-auto PollData(ZuneDevice::Ptr device, std::uint8_t* out_buffer, std::size_t size, std::size_t* out_bytesRead) -> Result {
+auto PollData(ZuneDevice::Ptr device, std::uint8_t* out_buffer, std::size_t size, std::size_t* out_bytesRead)
+    -> Result {
     auto result = device->session->XnaPollData();
     *out_bytesRead = result.size();
 
-    if(result.empty()) {
+    if (result.empty()) {
         return Result::Ok;
     }
 
-    if(size < result.size()) {
+    if (size < result.size()) {
         return Result::ErrorBufferTooSmall;
     }
 

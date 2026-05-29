@@ -7,7 +7,6 @@
 
 #include "enum.hpp"
 
-
 struct ZuneDevice {
     using Ptr = ZuneDevice*;
 
@@ -21,9 +20,9 @@ struct ZuneDevice {
 };
 
 extern "C" {
-    auto OpenConnection(ZuneDevice::Ptr* out_device_ptr) -> Result;
-    auto CloseConnection(ZuneDevice::Ptr device) -> void;
+auto OpenConnection(ZuneDevice::Ptr* out_device_ptr) -> Result;
+auto CloseConnection(ZuneDevice::Ptr device) -> void;
 
-    auto PollData(ZuneDevice::Ptr device, std::uint8_t* out_buffer, std::size_t size, std::size_t* out_bytesRead) -> Result;
-    auto SendData(ZuneDevice::Ptr device, std::uint8_t* buffer, std::size_t size) -> Result;
+auto PollData(ZuneDevice::Ptr device, std::uint8_t* out_buffer, std::size_t size, std::size_t* out_bytesRead) -> Result;
+auto SendData(ZuneDevice::Ptr device, std::uint8_t* buffer, std::size_t size) -> Result;
 }
