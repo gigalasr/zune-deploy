@@ -148,6 +148,10 @@ internal class StreamClosedCommand : ReceivableCommand {
     public StreamClosedCommand(ReadOnlySpan<byte> data) {
         CommandFactory.ParseByte(data, out StreamId);
     }
+
+    public StreamClosedCommand(byte streamId) {
+        StreamId = streamId;
+    }
 }
 
 /// <summary>
@@ -161,6 +165,11 @@ internal class StreamOpenedCommand : ReceivableCommand {
     public StreamOpenedCommand(ReadOnlySpan<byte> data) {
         CommandFactory.ParseByteAndUShort(data, out StreamId, out BufferSize);
     }
+
+    public StreamOpenedCommand(byte streamId, ushort bufferSize) {
+        StreamId = streamId;
+        BufferSize = bufferSize;
+    }
 }
 
 /// <summary>
@@ -171,6 +180,10 @@ internal class AckCancelCommand : ReceivableCommand {
 
     public AckCancelCommand(ReadOnlySpan<byte> data) {
         CommandFactory.ParseByte(data, out StreamId);
+    }
+
+    public AckCancelCommand(byte streamId) {
+        StreamId = streamId;
     }
 }
 
@@ -183,6 +196,10 @@ internal class RequestRefusedCommand : ReceivableCommand {
     public RequestRefusedCommand(ReadOnlySpan<byte> data) {
         CommandFactory.ParseByte(data, out StreamId);
     }
+
+    public RequestRefusedCommand(byte streamId) {
+        StreamId = streamId;
+    }
 }
 
 /// <summary>
@@ -194,6 +211,10 @@ internal class AckDisconnectCommand : ReceivableCommand {
 
     public AckDisconnectCommand(ReadOnlySpan<byte> data) {
         CommandFactory.ParseByte(data, out Arg);
+    }
+
+    public AckDisconnectCommand(byte arg) {
+        Arg = arg;
     }
 }
 
@@ -209,6 +230,10 @@ internal class RebootingCommand : ReceivableCommand {
     public RebootingCommand(ReadOnlySpan<byte> data) {
         CommandFactory.ParseByte(data, out Flags);
     }
+
+    public RebootingCommand(byte flags) {
+        Flags = flags;
+    }
 }
 
 /// <summary>
@@ -219,6 +244,10 @@ internal class KeepAliveCommand : ReceivableCommand {
 
     public KeepAliveCommand(ReadOnlySpan<byte> data) {
         CommandFactory.ParseByte(data, out Flags);
+    }
+
+    public KeepAliveCommand(byte flags) {
+        Flags = flags;
     }
 }
 
@@ -233,5 +262,10 @@ internal class DataProcessedCommand : ReceivableCommand {
 
     public DataProcessedCommand(ReadOnlySpan<byte> data) {
         CommandFactory.ParseByteAndUShort(data, out StreamId, out BytesConsumed);
+    }
+
+    public DataProcessedCommand(byte streamId, ushort consumed) {
+        StreamId = streamId;
+        BytesConsumed = consumed;
     }
 }
