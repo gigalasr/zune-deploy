@@ -31,17 +31,19 @@ internal class PacketReader {
         _currentSequenceId = sequenceId;
     }
 
+
+    // TODO: Add events for recievable commands again 
+    // TODO: Add ParseAndDeliver() Method that delivers messages and invokes command handlers
+
     public void FromDeviceBuffer(byte[] buffer, out List<Message> messages, out List<ReceivableCommand> commands) {
         if (buffer.Length != PACKET_LENGTH) {
             throw new ArgumentException($"A packet buffer must have a length of {PACKET_LENGTH}");
         }
 
-        var owned = (byte[])buffer.Clone();
-
-        ValidateHash(owned);
-        ValidateSequenceId(owned);
-        ValidateMessageList(owned);
-        Deserialize(owned, out messages, out commands);
+        ValidateHash(buffer);
+        ValidateSequenceId(buffer);
+        ValidateMessageList(buffer);
+        Deserialize(buffer, out messages, out commands);
     }
 
     private void ValidateHash(byte[] buffer) {
@@ -85,12 +87,12 @@ internal class PacketReader {
                 break;
             }
 
-            var data = buffer.AsMemory(offset + 3, payloadLen);
+            var data = buffer.AsSpan(offset + 3, payloadLen);
 
             if (streamId == 0) {
-                commands.Add(CommandFactory.FromDeviceBuffer(data.Span));
+                commands.Add(CommandFactory.FromDeviceBuffer(data));
             } else {
-                messages.Add(new Message(streamId, data));
+                messages.Add(new Message(streamId, data.ToArray()));
             }
 
             offset += payloadLen + 3;

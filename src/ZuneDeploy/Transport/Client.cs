@@ -17,6 +17,7 @@ internal class Client {
     private BlockingCollection<byte[]> _recieveQueue;
     private BlockingCollection<byte[]> _sendQueue;
 
+    private StreamCollection _streamCollection;
     private PacketReader _packetReader;
     private PacketWriter _packetWriter;
 
@@ -32,8 +33,12 @@ internal class Client {
         return result;
     }
 
-    public ServiceStream ConnectToService(Guid serviceId) {
-        throw new NotImplementedException();
+    public ServiceStream ConnectToService(string serviceId) {
+        ServiceStream stream = _streamCollection.OpenStream(serviceId);
+
+        // TODO: Actually open stream and wait for stuffs
+
+        return stream;
     }
 
     public void Send(SendableCommand command) {
@@ -63,8 +68,10 @@ internal class Client {
     private Client(IntPtr deviceHandle) {
         _deviceHandle = deviceHandle;
 
+        _streamCollection = new StreamCollection();
         _packetReader = new PacketReader();
-        _packetWriter = new PacketWriter();
+        _packetWriter = new PacketWriter(_streamCollection);
+
         _recieveQueue = new BlockingCollection<byte[]>();
         _sendQueue = new BlockingCollection<byte[]>();
 

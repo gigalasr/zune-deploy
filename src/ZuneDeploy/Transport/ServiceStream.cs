@@ -3,7 +3,14 @@ using System.Collections.Concurrent;
 
 namespace ZuneDeploy.Transport;
 
-using StreamPacket = byte[];
+
+internal enum ServiceStreamState {
+    Opening,
+    Open,
+    Closing,
+    Closed
+}
+
 
 /// <summary>
 /// Stream to send and recieve bytes from a service over a packet stream 
@@ -15,34 +22,41 @@ internal class ServiceStream : Stream {
 
     // private ChannelReader<StreamPacket> _reader;
     // private ChannelWriter<StreamPacket> _writer;
-    private BlockingCollection<StreamPacket> _incomingPackets = new();
-    private BlockingCollection<StreamPacket> _outgoingPackets = new();
+    private BlockingCollection<Message> _incomingPackets = new();
+    private BlockingCollection<Message> _outgoingPackets = new();
 
     private Queue<MemoryStream> _readQueue = new();
     private MemoryStream _writeBuffer = new();
 
     public byte StreamId { init; get; }
 
-    public ServiceStream(byte streamId) {
+    private int _state = (int)ServiceStreamState.Opening;
+    public ServiceStreamState State {
+        get => (ServiceStreamState)Interlocked.CompareExchange(ref _state, 0, 0);
+        set => Interlocked.Exchange(ref _state, (int)value);
+    }
+
+    internal ServiceStream(byte streamId) {
         StreamId = streamId;
     }
 
     public override int Read(byte[] buffer, int offset, int count) {
         // Drain incoming packets
-        while (_incomingPackets.TryTake(out StreamPacket? packet)) {
+        while (_incomingPackets.TryTake(out Message? packet)) {
             if (packet != null) {
-                _readQueue.Enqueue(new MemoryStream(packet));
+                _readQueue.Enqueue(packet.Data);
             }
         }
 
         // If we still don't have any data, block to avoid the BinaryReader calling the Read function repeatedly 
         if (_readQueue.Count == 0) {
-            _readQueue.Enqueue(new MemoryStream(_incomingPackets.Take()));
+            _readQueue.Enqueue(_incomingPackets.Take().Data);
         }
 
         var current = _readQueue.Peek();
         int bytesRead = current.Read(buffer, offset, count);
 
+        // We remove a block from the queue if we read it til the end
         if (current.Position >= current.Length) {
             _readQueue.Dequeue();
         }
@@ -56,9 +70,21 @@ internal class ServiceStream : Stream {
 
     public override void Flush() {
         var buffer = _writeBuffer.ToArray();
-        _outgoingPackets.Add(buffer);
+        _outgoingPackets.Add(new Message(StreamId, buffer));
         _writeBuffer.SetLength(0);
         _writeBuffer.Position = 0;
+    }
+
+    internal void DeliverMessage(Message message) {
+        if (message.StreamId != StreamId) {
+            throw new Exception("StreamIds do not match");
+        }
+
+        _incomingPackets.Add(message);
+    }
+
+    internal bool CollectMessage(out Message? item) {
+        return _outgoingPackets.TryTake(out item);
     }
 
     public override long Length => throw new NotSupportedException();

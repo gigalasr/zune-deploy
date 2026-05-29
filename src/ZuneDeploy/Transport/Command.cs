@@ -88,7 +88,17 @@ internal static class CommandFactory {
 internal interface ICommand { }
 
 internal abstract class SendableCommand : ICommand {
-    public required byte[] RawBytes { init; get; }
+    public byte[] RawBytes { init; get; }
+
+    public SendableCommand(byte[] bytes) {
+        RawBytes = bytes;
+    }
+
+    /// <summary>
+    /// The length of the message, including its header (1 byte streamId, 2 bytes length)
+    /// Note: The header will be added by the <see cref="PacketWriter"/> when creating the packet containing the message
+    /// </summary>
+    public int LengthIncludingHeader => RawBytes.Length + 3;
 }
 
 internal abstract class ReceivableCommand : ICommand { }
@@ -98,45 +108,40 @@ internal abstract class ReceivableCommand : ICommand { }
 /// Zune will answer with <see cref="StreamOpenedCommand"/>  or <see cref="RequestRefusedCommand"/>
 /// </summary>
 internal class OpenStreamCommand : SendableCommand {
-    public OpenStreamCommand(byte streamId, string serviceName) {
-        RawBytes = CommandFactory.FromByteAndString(CommandType.OpenStream, streamId, serviceName);
-    }
+    public OpenStreamCommand(byte streamId, string serviceName)
+        : base(CommandFactory.FromByteAndString(CommandType.OpenStream, streamId, serviceName)) { }
 }
 
 /// <summary>
 /// Sent to the Zune in response to <see cref="StreamOpenedCommand"/>
 /// </summary>
 internal class AckOpenCommand : SendableCommand {
-    public AckOpenCommand(byte streamId) {
-        RawBytes = CommandFactory.FromByte(CommandType.AckOpen, streamId);
-    }
+    public AckOpenCommand(byte streamId)
+        : base(CommandFactory.FromByte(CommandType.AckOpen, streamId)) { }
 }
 
 /// <summary>
 /// Sent to the Zune to close an XNA Session
 /// </summary>
 internal class DisconnectCommand : SendableCommand {
-    public DisconnectCommand(byte arg = 0) {
-        RawBytes = CommandFactory.FromByte(CommandType.Disconnect, arg);
-    }
+    public DisconnectCommand(byte arg = 0)
+        : base(CommandFactory.FromByte(CommandType.Disconnect, arg)) { }
 }
 
 /// <summary>
 /// Cancels an <see cref="OpenStreamCommand"/> request
 /// </summary> 
 internal class CancelOpenCommand : SendableCommand {
-    public CancelOpenCommand(byte streamId) {
-        RawBytes = CommandFactory.FromByte(CommandType.CancelOpen, streamId);
-    }
+    public CancelOpenCommand(byte streamId)
+        : base(CommandFactory.FromByte(CommandType.CancelOpen, streamId)) { }
 }
 
 /// <summary>
 /// Sent to the Zune to close a stream.
 /// </summary>
 internal class CloseStreamCommand : SendableCommand {
-    public CloseStreamCommand(byte streamId) {
-        RawBytes = CommandFactory.FromByte(CommandType.CloseStream, streamId);
-    }
+    public CloseStreamCommand(byte streamId)
+        : base(CommandFactory.FromByte(CommandType.CloseStream, streamId)) { }
 }
 
 /// <summary>
