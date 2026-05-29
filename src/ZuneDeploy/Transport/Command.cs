@@ -28,8 +28,8 @@ internal enum CommandType : byte {
 
 internal static class CommandFactory {
     public static ReceivableCommand FromDeviceBuffer(ReadOnlySpan<byte> data) {
-        if (data.Length < 1) {
-            throw new ArgumentException("Command buffer needs a length of at least 1");
+        if (data.Length < 2) {
+            throw new ArgumentException("Command buffer needs a length of at least 2");
         }
 
         CommandType type = (CommandType)data[0];
