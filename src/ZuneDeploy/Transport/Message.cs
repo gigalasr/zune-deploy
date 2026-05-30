@@ -17,5 +17,13 @@ internal class Message {
     /// </summary>
     public int RemainingLengthIncludingHeader => (int)(Data.Length - Data.Position + HeaderLength);
 
+    /// <summary>
+    /// The remaining length of the message
+    /// </summary>
+    public int RemainingLength => (int)(Data.Length - Data.Position);
+
+
     public const int HeaderLength = 3;
+
+    public const int MinBlockSize = 4;
 }

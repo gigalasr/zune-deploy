@@ -30,7 +30,7 @@ internal class PacketWriter {
         if (!hasWork) {
             foreach (Message message in _pendingMessages) {
                 // Blocks have to be at least 4 bytes long
-                if (_streamCollection.GetBufferCapacityForStream(message.StreamId) >= 4) {
+                if (_streamCollection.GetBufferCapacityForStream(message.StreamId) >= Message.MinBlockSize) {
                     hasWork = true;
                     break;
                 }
@@ -103,26 +103,34 @@ internal class PacketWriter {
 
         // Write Messages
         foreach (Message message in _pendingMessages) {
+            // We need space for the header and at least 4 bytes 
             int remaining = payload.Length - position;
-            if (remaining == 0) {
+            if (remaining < Message.HeaderLength + Message.MinBlockSize) {
                 break;
             }
 
-            // Messages can be writen partially 
+            // Messages are chunked and sent chunk by chunk to not overflow the host buffer
+            // However, messages have to be at least 4 bytes long.
             int hostBufferSize = _streamCollection.GetBufferCapacityForStream(message.StreamId);
-            int bytesToWrite = Math.Min(message.RemainingLengthIncludingHeader, Math.Min(hostBufferSize, remaining));
-            if (bytesToWrite == 0) {
-                // No more space in packet, stream or hostBuffer
+            if (hostBufferSize < Message.MinBlockSize) {
                 continue;
             }
 
-            // Header
-            var messageSpan = payload.Slice(position, bytesToWrite);
-            messageSpan[0] = message.StreamId;
-            BinaryPrimitives.WriteUInt16BigEndian(messageSpan.Slice(1), (ushort)(bytesToWrite - Message.HeaderLength));
+            // Because of the condition above we know that there is at least space
+            // for the header and 4 bytes of the message in the packet  
+            int available = Math.Min(
+                Math.Min(hostBufferSize, message.RemainingLength) + Message.HeaderLength,
+                remaining
+            );
+
+            var messageSpan = payload.Slice(position, available);
 
             // Message Contents
             int bytesCopied = message.Data.Read(messageSpan.Slice(Message.HeaderLength));
+
+            // Header
+            messageSpan[0] = message.StreamId;
+            BinaryPrimitives.WriteUInt16BigEndian(messageSpan.Slice(1), (ushort)bytesCopied);
 
             position += bytesCopied + Message.HeaderLength;
             _streamCollection.DecrementBufferCapacityForStream(message.StreamId, (ushort)bytesCopied);

@@ -132,7 +132,7 @@ public class PacketWriterTests {
         var message = new byte[500].AsSpan();
         Random.Shared.NextBytes(message);
 
-        var messagePart1 = message.Slice(0, CAPACITY - Message.HeaderLength);
+        var messagePart1 = message.Slice(0, CAPACITY);
         var messagePart2 = message.Slice(messagePart1.Length, message.Length - messagePart1.Length);
 
         var expectedPacket1 = TestUtil.FillPacket([
@@ -197,6 +197,9 @@ public class PacketWriterTests {
 
         // We do not call stream.OnDataProcessed - so only one packet should be created
         Assert.True(writer.GetNextPacket(out byte[]? _));
+
+        Assert.Equal(0, collection.GetBufferCapacityForStream(stream.StreamId));
+
         Assert.False(writer.GetNextPacket(out byte[]? _));
     }
 
