@@ -41,7 +41,7 @@ public class PacketReaderTests {
 
     [Theory]
     [MemberData(nameof(GetParsingTestData))]
-    internal void ParsePackets(byte[] rawPacketBytes, int sequenceId, ReceivableCommand[] expectedCommands, Message[] expectedMessages) {
+    internal void ParsePackets(byte[] rawPacketBytes, uint sequenceId, ReceivableCommand[] expectedCommands, Message[] expectedMessages) {
         PacketReader reader = new PacketReader(sequenceId);
         reader.FromDeviceBuffer(rawPacketBytes, out List<Message> actualMessages, out List<ReceivableCommand> actualCommands);
 

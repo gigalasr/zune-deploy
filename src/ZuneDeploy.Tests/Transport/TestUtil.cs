@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using System.Security.Cryptography;
 using ZuneDeploy.Transport;
 
 namespace ZuneDeploy.Tests;
@@ -28,6 +29,9 @@ internal static class TestUtil {
 
         var packet = new byte[Packet.PACKET_LENGTH];
         buffer.CopyTo(packet, 0);
+
+        var hash = SHA1.HashData(Packet.HashContentsSpan(packet));
+        hash.CopyTo(Packet.HashSpan(packet));
 
         return packet;
     }

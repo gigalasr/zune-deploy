@@ -16,7 +16,7 @@ namespace ZuneDeploy.Transport;
  * Command (len includes type and args)
  * [0][len_hi][len_low][type][args]
  *
- * Terminator
+ * Terminator -> Last 3 bytes of the payload have to be 0 !
  * [0][0][0]
  */
 internal class PacketReader {
@@ -25,9 +25,9 @@ internal class PacketReader {
     private const int SEQID_LENGTH = 4;
     private const int PAYLOAD_END = SEQID_LENGTH + PAYLOAD_LENGTH - 1;
 
-    private int _currentSequenceId;
+    private uint _currentSequenceId;
 
-    public PacketReader(int sequenceId = 0) {
+    public PacketReader(uint sequenceId = 0) {
         _currentSequenceId = sequenceId;
     }
 
@@ -40,37 +40,8 @@ internal class PacketReader {
             throw new ArgumentException($"A packet buffer must have a length of {PACKET_LENGTH}");
         }
 
-        ValidateHash(buffer);
-        ValidateSequenceId(buffer);
-        ValidateMessageList(buffer);
+        Packet.ValidatePacket(buffer, _currentSequenceId);
         Deserialize(buffer, out messages, out commands);
-    }
-
-    private void ValidateHash(byte[] buffer) {
-        // TODO: Build SHA1 Hash and comapre to hash in packet
-    }
-
-    private void ValidateSequenceId(byte[] buffer) {
-        int sequence = (buffer[0] << 24) | (buffer[1] << 16) | (buffer[2] << 8) | buffer[3];
-        if (sequence != _currentSequenceId) {
-            throw new Exception($"Invalid Sequence Id. Expected {_currentSequenceId}, got {sequence}");
-        }
-    }
-
-    private void ValidateMessageList(byte[] buffer) {
-        int offset = SEQID_LENGTH;
-        int payloadLength = 0;
-        while (offset + 3 <= PAYLOAD_END) {
-            payloadLength = (buffer[offset + 1] << 8) | buffer[offset + 2];
-            offset += payloadLength + 3;
-            if (payloadLength == 0) {
-                break;
-            }
-        }
-
-        if (!(payloadLength == 0 && offset <= PAYLOAD_END)) {
-            throw new Exception("Message list is invalid");
-        }
     }
 
     private void Deserialize(byte[] buffer, out List<Message> messages, out List<ReceivableCommand> commands) {

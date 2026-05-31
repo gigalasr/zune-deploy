@@ -3,7 +3,7 @@ using System.Text;
 namespace ZuneDeploy;
 
 internal static class HexDump {
-    public static void Dump(byte[] bytes) {
+    public static void Dump(ReadOnlySpan<byte> bytes) {
         StringBuilder s = new StringBuilder();
         const int bytesPerLine = 16;
 

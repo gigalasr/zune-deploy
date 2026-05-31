@@ -68,7 +68,7 @@ internal class PacketWriter {
          * Command (len includes type and args)
          * [0][len_hi][len_low][type][args]
          *
-         * Terminator
+         * Terminator -> Last 3 bytes of the payload have to be 0 !
          * [0][0][0]
          */
 
@@ -78,7 +78,7 @@ internal class PacketWriter {
         // Write Sequence Id
         BinaryPrimitives.WriteUInt32BigEndian(Packet.SequenceIdSpan(packet), sequenceId);
 
-        var payload = Packet.PayloadSpan(packet);
+        var payload = Packet.UseablePayloadSpan(packet);
         int position = 0;
 
         // Write Commands

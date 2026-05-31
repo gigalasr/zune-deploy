@@ -55,6 +55,8 @@ public class PacketWriterTests {
         Assert.True(didCreatePacket);
         Assert.NotNull(actualPacket);
 
+        Packet.ValidatePacket(actualPacket, 0);
+
         var actualPacketSpan = actualPacket.AsSpan();
         AssertPayloadMatches(expectedPacket, actualPacketSpan);
         AssertHashesMatch(expectedPacket, actualPacketSpan);
@@ -89,6 +91,8 @@ public class PacketWriterTests {
         Assert.True(didCreatePacket);
         Assert.NotNull(actualPacket);
 
+        Packet.ValidatePacket(actualPacket, 0);
+
         var actualPacketSpan = actualPacket.AsSpan();
         AssertPayloadMatches(expectedPacket, actualPacketSpan);
         AssertHashesMatch(expectedPacket, actualPacketSpan);
@@ -120,6 +124,8 @@ public class PacketWriterTests {
 
         Assert.True(didCreatePacket);
         Assert.NotNull(actualPacket);
+
+        Packet.ValidatePacket(actualPacket, 0);
 
         var actualPacketSpan = actualPacket.AsSpan();
         AssertPayloadMatches(expectedPacket, actualPacketSpan);
@@ -169,7 +175,9 @@ public class PacketWriterTests {
         Assert.True(didCreatePacket);
         Assert.NotNull(actualPacket);
 
+
         var actualPacketSpan = actualPacket.AsSpan();
+        Packet.ValidatePacket(actualPacket, 0);
         AssertPayloadMatches(expectedPacket1, actualPacketSpan);
         AssertHashesMatch(expectedPacket1, actualPacketSpan);
 
@@ -182,6 +190,7 @@ public class PacketWriterTests {
         Assert.NotNull(actualPacket2);
 
         var actualPacketSpan2 = actualPacket2.AsSpan();
+        Packet.ValidatePacket(actualPacket2, 1);
         AssertPayloadMatches(expectedPacket2, actualPacketSpan2);
         AssertHashesMatch(expectedPacket2, actualPacketSpan2);
     }
@@ -203,9 +212,7 @@ public class PacketWriterTests {
 
         // We do not call stream.OnDataProcessed - so only one packet should be created
         Assert.True(writer.GetNextPacket(out byte[]? _));
-
         Assert.Equal(0, collection.GetBufferCapacityForStream(stream.StreamId));
-
         Assert.False(writer.GetNextPacket(out byte[]? _));
     }
 
@@ -249,6 +256,7 @@ public class PacketWriterTests {
         Assert.NotNull(actualPacket);
 
         var actualPacketSpan = actualPacket.AsSpan();
+        Packet.ValidatePacket(actualPacket, 0);
         AssertPayloadMatches(expectedPacket, actualPacketSpan);
         AssertHashesMatch(expectedPacket, actualPacketSpan);
     }
@@ -299,6 +307,7 @@ public class PacketWriterTests {
         Assert.NotNull(actualPacket);
 
         var actualPacketSpan = actualPacket.AsSpan();
+        Packet.ValidatePacket(actualPacket, 0);
         AssertPayloadMatches(expectedPacket, actualPacketSpan);
         AssertHashesMatch(expectedPacket, actualPacketSpan);
     }
@@ -308,7 +317,7 @@ public class PacketWriterTests {
         StreamCollection collection = new StreamCollection();
         PacketWriter writer = new PacketWriter(collection);
 
-        int streamLength = Packet.PAYLOAD_LENGTH * 2;
+        int streamLength = Packet.USABLE_PAYLOAD_LENGTH * 2;
 
         // Write commands into queue
         int totalBytes = 0;
@@ -320,14 +329,14 @@ public class PacketWriterTests {
 
         // Generate expected packets
         List<byte[]> expectedPackets = new List<byte[]>();
-        int numExpectedPackets = (int)Math.Ceiling(totalBytes / (double)Packet.PAYLOAD_LENGTH);
+        int numExpectedPackets = (int)Math.Ceiling(totalBytes / (double)Packet.USABLE_PAYLOAD_LENGTH);
         for (int i = 0; i < numExpectedPackets; i++) {
             byte[] packet = TestUtil.FillPacket([
                 // Sequence Id
                 0x0, 0x0, 0x0, (byte)i
             ]);
             int position = 4;
-            while (position - 4 <= Packet.PAYLOAD_LENGTH - cmd.LengthIncludingHeader && totalBytes > 0) {
+            while (position - 4 <= Packet.USABLE_PAYLOAD_LENGTH - cmd.LengthIncludingHeader && totalBytes > 0) {
                 packet[position++] = 0;
                 packet[position++] = (byte)(cmd.RawBytes.Length >> 8);
                 packet[position++] = (byte)cmd.RawBytes.Length;
@@ -339,10 +348,11 @@ public class PacketWriterTests {
         }
 
         // Compare with actual packets
+        uint seqid = 0;
         foreach (byte[] expected in expectedPackets) {
             bool didCreatePacket = writer.GetNextPacket(out byte[]? actualPacket);
             Assert.True(didCreatePacket);
-
+            Packet.ValidatePacket(actualPacket, seqid++);
             AssertPayloadMatches(expected, actualPacket);
             AssertHashesMatch(expected, actualPacket);
         }
@@ -377,9 +387,9 @@ public class PacketWriterTests {
         }
 
         // Create messages and packets
-        byte[] messageA = new byte[Packet.PAYLOAD_LENGTH];
+        byte[] messageA = new byte[Packet.USABLE_PAYLOAD_LENGTH];
         Random.Shared.NextBytes(messageA);
-        byte[] messageB = new byte[Packet.PAYLOAD_LENGTH / 2];
+        byte[] messageB = new byte[Packet.USABLE_PAYLOAD_LENGTH / 2];
         Random.Shared.NextBytes(messageB);
 
         streamA.Write(messageA);
@@ -388,10 +398,10 @@ public class PacketWriterTests {
         streamB.Write(messageB);
         streamB.Flush();
 
-        var messageAPart1 = messageA.AsSpan().Slice(0, Packet.PAYLOAD_LENGTH - commandBuffer.Length - Message.HeaderLength);
+        var messageAPart1 = messageA.AsSpan().Slice(0, Packet.USABLE_PAYLOAD_LENGTH - commandBuffer.Length - Message.HeaderLength);
         var messageAPart2 = messageA.AsSpan().Slice(messageAPart1.Length);
 
-        var messageBPart1 = messageB.AsSpan().Slice(0, Packet.PAYLOAD_LENGTH - messageAPart2.Length - Message.HeaderLength * 2);
+        var messageBPart1 = messageB.AsSpan().Slice(0, Packet.USABLE_PAYLOAD_LENGTH - messageAPart2.Length - Message.HeaderLength * 2);
         var messageBPart2 = messageB.AsSpan().Slice(messageBPart1.Length);
 
         byte[][] expectedPackets = {
@@ -412,10 +422,10 @@ public class PacketWriterTests {
         };
 
         for (int i = 0; i < expectedPackets.Length; i++) {
-            Console.WriteLine($"Testing Packet {i}");
             bool didCreatePacket = writer.GetNextPacket(out byte[]? packet);
 
             Assert.True(didCreatePacket);
+            Packet.ValidatePacket(packet, (uint)i);
             AssertPayloadMatches(expectedPackets[i], packet);
             AssertHashesMatch(expectedPackets[i], packet);
         }
