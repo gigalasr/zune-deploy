@@ -41,6 +41,28 @@ public class PacketTests {
     }
 
     [Fact]
+    public void MultipleMessages_TilEnd_Random() {
+        byte[] packet = new byte[Packet.PACKET_LENGTH];
+        var payload = Packet.UseablePayloadSpan(packet);
+
+        int offset = 0;
+        while (true) {
+            int remaining = payload.Length - offset;
+            if (remaining < Message.HeaderLength + Message.MinBlockSize) {
+                break;
+            }
+
+            int length = Math.Min(remaining, Random.Shared.Next(Message.HeaderLength + Message.MinBlockSize, 64));
+            var message = payload.Slice(offset, length);
+            Random.Shared.NextBytes(message);
+            BinaryPrimitives.WriteUInt16BigEndian(message.Slice(1, 2), (ushort)(length - Message.HeaderLength));
+            offset += message.Length;
+        }
+
+        Packet.ValidateMessageList(packet);
+    }
+
+    [Fact]
     public void MultipleMessages_IncorrectLength() {
         byte[] packet = new byte[Packet.PACKET_LENGTH];
         var payload = Packet.UseablePayloadSpan(packet);
