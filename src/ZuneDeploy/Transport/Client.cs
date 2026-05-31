@@ -1,7 +1,6 @@
 
 
 using System.Collections.Concurrent;
-using System.Runtime.CompilerServices;
 using NativeGen;
 
 namespace ZuneDeploy.Transport;
@@ -10,15 +9,13 @@ namespace ZuneDeploy.Transport;
 /// Handles transport layer communication with the Zune, handshake, polling, etc.
 /// Batches multiple Packets and Messages into a Packet, parses incoming packets into message and commands.
 /// </summary>
-internal class Client {
-    private const int POLL_TIMEOUT = 200;
+public class Client {
     private IntPtr _deviceHandle;
     private Thread _connectionThread;
     private volatile bool _conThreadRunning = true;
     private StreamCollection _streamCollection;
     private PacketReader _packetReader;
     private PacketWriter _packetWriter;
-
     private BlockingCollection<IWorkItemTx> _workRequest = new();
     private BlockingCollection<IWorkItemRx> _workResponse = new();
 
@@ -51,6 +48,12 @@ internal class Client {
         }
     }
 
+    public void CloseStream(byte streamId) {
+        _workRequest.Add(new CloseStreamRequest {
+            StreamId = streamId
+        });
+    }
+
     private Client(IntPtr deviceHandle) {
         _deviceHandle = deviceHandle;
 
@@ -74,43 +77,38 @@ internal class Client {
     }
 
     private void OnStreamClosed(object? sender, StreamClosedCommand info) {
-        Console.WriteLine($"[CMD] StreamClosed id={info.StreamId}");
+        Console.WriteLine($"StreamClosed id={info.StreamId}");
     }
 
     private void OnStreamOpened(object? sender, StreamOpenedCommand info) {
-        Console.WriteLine($"[CMD] StreamOpened id={info.StreamId} buffer={info.BufferSize}");
+        Console.WriteLine($"StreamOpened id={info.StreamId} buffer={info.BufferSize}");
         _streamCollection.OnStreamOpened(info.StreamId, info.BufferSize);
         _packetWriter.SendCommand(new AckOpenCommand(info.StreamId));
         _workResponse.Add(new OpenStreamResponse { Stream = _streamCollection.GetStream(info.StreamId) });
     }
 
     private void OnAckCancel(object? sender, AckCancelCommand info) {
-        Console.WriteLine($"[CMD] AckCancel id={info.StreamId}");
-
+        Console.WriteLine($"AckCancel id={info.StreamId}");
     }
 
     private void OnRequestRefused(object? sender, RequestRefusedCommand info) {
-        Console.WriteLine($"[CMD] RequestRefused id={info.StreamId}");
-
+        Console.WriteLine($"RequestRefused id={info.StreamId}");
     }
 
     private void OnAckDisconnect(object? sender, AckDisconnectCommand info) {
-        Console.WriteLine($"[CMD] AckDisconnect arg={info.Arg}");
-
+        Console.WriteLine($"AckDisconnect arg={info.Arg}");
     }
 
     private void OnHostRebooting(object? sender, RebootingCommand info) {
-        Console.WriteLine($"[CMD] HostRebooting arg={info.Flags}");
-
+        Console.WriteLine($"HostRebooting arg={info.Flags}");
     }
 
     private void OnKeepAlive(object? sender, KeepAliveCommand info) {
-        Console.WriteLine($"[CMD] KeepAlive arg={info.Flags}");
-
+        Console.WriteLine($"KeepAlive arg={info.Flags}");
     }
 
     private void OnDataProcessed(object? sender, DataProcessedCommand info) {
-        Console.WriteLine($"[CMD] DataProcessed id={info.StreamId} consumed={info.BytesConsumed}");
+        Console.WriteLine($"DataProcessed id={info.StreamId} consumed={info.BytesConsumed}");
         _streamCollection.OnDataProcessed(info.StreamId, info.BytesConsumed);
     }
 
@@ -118,7 +116,7 @@ internal class Client {
         int sendResult = MTP.SendData(_deviceHandle, data, data.Length);
 
         if ((Result)sendResult != Result.Ok) {
-            Console.WriteLine("[ConThread] Non OK Result (send): " + sendResult);
+            Console.WriteLine("Non OK Result (send): " + sendResult);
             return false;
         }
 
@@ -129,7 +127,7 @@ internal class Client {
     private int ReadRaw(byte[] destination) {
         var reuslt = (Result)MTP.PollData(_deviceHandle, destination, destination.Length, out int length);
         if (reuslt != Result.Ok) {
-            Console.WriteLine("[ConThread] Non OK Result (recieve): " + reuslt);
+            Console.WriteLine("Non OK Result (recieve): " + reuslt);
             return -1;
         }
 
@@ -157,16 +155,26 @@ internal class Client {
         Console.WriteLine("Connected");
     }
 
-    private void OpenStream(string serviceId) {
-        ServiceStream stream = _streamCollection.OpenStream();
+    private void OpenStream_WorkItem(string serviceId) {
+        ServiceStream stream = _streamCollection.OpenStream(CloseStream);
         _packetWriter.SendCommand(new OpenStreamCommand(stream.StreamId, serviceId));
+        Console.WriteLine($"Requesting to open stream id={stream.StreamId} to service '{serviceId}'");
+    }
+
+    private void CloseStream_WorkItem(byte streamId) {
+        _streamCollection.CloseStream(streamId);
+        _packetWriter.SendCommand(new CloseStreamCommand(streamId));
+        Console.WriteLine($"Requesting to close stream id={streamId}");
     }
 
     private void ProcessWorkItems() {
         while (_workRequest.TryTake(out IWorkItemTx? item)) {
             switch (item) {
                 case OpenStreamRequest req:
-                    OpenStream(req.ServiceId);
+                    OpenStream_WorkItem(req.ServiceId);
+                    break;
+                case CloseStreamRequest req:
+                    CloseStream_WorkItem(req.StreamId);
                     break;
                 default:
                     throw new Exception("Unknown Request");

@@ -1,5 +1,6 @@
 ﻿using ZuneDeploy.Transport;
 using NativeGen;
+using ZuneDeploy.XNA;
 
 namespace ZuneDeploy.Core;
 
@@ -26,7 +27,8 @@ class Program {
 
         _client = device;
 
-        _client.ConnectToService("XnaChannelBroker");
+        Channel chan = new Channel(device, Guid.Empty);
+
 
         while (true) { }
     }

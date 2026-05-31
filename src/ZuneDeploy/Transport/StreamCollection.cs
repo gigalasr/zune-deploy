@@ -12,10 +12,10 @@ internal class StreamCollection() {
     // streamid=0 is reserved for commands
     private byte _nextStreamId = 1;
 
-    public ServiceStream OpenStream() {
+    public ServiceStream OpenStream(ServiceStream.CloseStream closeStreamCallback) {
         byte streamId = GetNextStreamId();
 
-        ServiceStream stream = new ServiceStream(streamId);
+        ServiceStream stream = new ServiceStream(streamId, closeStreamCallback);
         _streams.Add(streamId, new StreamInformation {
             Stream = stream,
             HostBufferSize = 0,
