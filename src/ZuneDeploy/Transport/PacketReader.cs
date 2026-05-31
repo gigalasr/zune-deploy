@@ -74,7 +74,10 @@ internal class PacketReader {
             throw new ArgumentException($"A packet buffer must have a length of {Packet.PACKET_LENGTH}");
         }
 
-        Packet.ValidatePacket(buffer, GetNextSequenceId());
+        // It looks like the zune does not send a hash at the end :D
+        //Packet.ValidatePacket(buffer, GetNextSequenceId());
+        Packet.ValidateSequenceId(buffer, GetNextSequenceId());
+        Packet.ValidateMessageList(buffer);
 
         int offset = Packet.SEQID_LENGTH;
         while (offset + 2 <= Packet.PAYLOAD_END) {

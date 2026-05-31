@@ -89,7 +89,6 @@ auto PollData(ZuneDevice::Ptr device, std::uint8_t* out_buffer, std::size_t size
     if (size < result.size()) {
         return Result::ErrorBufferTooSmall;
     }
-
     std::memcpy(out_buffer, result.data(), std::min(size, result.size()));
 
     return Result::Ok;

@@ -26,6 +26,8 @@ class Program {
 
         _client = device;
 
+        _client.ConnectToService("XnaChannelBroker");
+
         while (true) { }
     }
 

@@ -19,8 +19,8 @@ internal static class HelloMessage {
 
     public static byte[] CreateMessage(string deviceName = "Zune HD") {
         var buffer = new byte[MESSAGE_LEN];
-        buffer[6] = 1;
-        buffer[7] = 2;
+        buffer[6] = 0x50;
+        buffer[7] = 0xC5;
 
         var nameBytes = Encoding.BigEndianUnicode.GetBytes(deviceName);
         if (nameBytes.Length > MAX_DEVICE_NAME_LEN) {

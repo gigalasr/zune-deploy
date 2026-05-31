@@ -9,7 +9,8 @@ internal record StreamInformation {
 internal class StreamCollection() {
     private Dictionary<byte, StreamInformation> _streams = new();
     private Queue<byte> _freeStreamIds = new();
-    private byte _nextStreamId = 0;
+    // streamid=0 is reserved for commands
+    private byte _nextStreamId = 1;
 
     public ServiceStream OpenStream() {
         byte streamId = GetNextStreamId();
@@ -103,6 +104,10 @@ internal class StreamCollection() {
                 }
             }
         }
+    }
+
+    public ServiceStream GetStream(byte streamId) {
+        return _streams[streamId].Stream;
     }
 
     private byte GetNextStreamId() {

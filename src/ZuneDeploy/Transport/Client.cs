@@ -1,6 +1,7 @@
 
 
 using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 using NativeGen;
 
 namespace ZuneDeploy.Transport;
@@ -18,6 +19,9 @@ internal class Client {
     private PacketReader _packetReader;
     private PacketWriter _packetWriter;
 
+    private BlockingCollection<IWorkItemTx> _workRequest = new();
+    private BlockingCollection<IWorkItemRx> _workResponse = new();
+
     public static Result TryConnect(out Client? device) {
         Console.WriteLine("Connecting...");
         var result = (Result)MTP.OpenConnection(out IntPtr deviceHandle);
@@ -28,6 +32,23 @@ internal class Client {
         }
 
         return result;
+    }
+
+    public void Close() {
+        // TODO: Implement the actual closing commands i.e. CommandType.Disconnect
+        Console.WriteLine("Closing Connection...");
+        _conThreadRunning = false;
+        _connectionThread.Join();
+        MTP.CloseConnection(_deviceHandle);
+    }
+
+    public ServiceStream ConnectToService(string serviceId) {
+        _workRequest.Add(new OpenStreamRequest { ServiceId = serviceId });
+        var response = _workResponse.Take();
+        switch (response) {
+            case OpenStreamResponse r: return r.Stream;
+            default: throw new Exception("Failed to open stream");
+        }
     }
 
     private Client(IntPtr deviceHandle) {
@@ -50,25 +71,6 @@ internal class Client {
 
         _connectionThread = new Thread(PollAndSendData);
         _connectionThread.Start();
-
-        Thread.Sleep(5000);
-        SendCommand(new OpenStreamCommand(1, "XnaChannelBroker"));
-    }
-
-    public void Close() {
-        // TODO: Implement the actual closing commands i.e. CommandType.Disconnect
-        Console.WriteLine("Closing Connection...");
-        _conThreadRunning = false;
-        _connectionThread.Join();
-        MTP.CloseConnection(_deviceHandle);
-    }
-
-    public ServiceStream ConnectToService(string serviceId) {
-        ServiceStream stream = _streamCollection.OpenStream();
-
-        // TODO: Actually open stream and wait for stuffs
-
-        return stream;
     }
 
     private void OnStreamClosed(object? sender, StreamClosedCommand info) {
@@ -78,7 +80,8 @@ internal class Client {
     private void OnStreamOpened(object? sender, StreamOpenedCommand info) {
         Console.WriteLine($"[CMD] StreamOpened id={info.StreamId} buffer={info.BufferSize}");
         _streamCollection.OnStreamOpened(info.StreamId, info.BufferSize);
-        SendCommand(new AckOpenCommand(info.StreamId));
+        _packetWriter.SendCommand(new AckOpenCommand(info.StreamId));
+        _workResponse.Add(new OpenStreamResponse { Stream = _streamCollection.GetStream(info.StreamId) });
     }
 
     private void OnAckCancel(object? sender, AckCancelCommand info) {
@@ -111,16 +114,14 @@ internal class Client {
         _streamCollection.OnDataProcessed(info.StreamId, info.BytesConsumed);
     }
 
-    private void SendCommand(SendableCommand command) {
-        _packetWriter.SendCommand(command);
-    }
-
     private bool SendRaw(byte[] data) {
-        var sendResult = (Result)MTP.SendData(_deviceHandle, data, data.Length);
-        if (sendResult != Result.Ok) {
+        int sendResult = MTP.SendData(_deviceHandle, data, data.Length);
+
+        if ((Result)sendResult != Result.Ok) {
             Console.WriteLine("[ConThread] Non OK Result (send): " + sendResult);
             return false;
         }
+
 
         return true;
     }
@@ -156,22 +157,42 @@ internal class Client {
         Console.WriteLine("Connected");
     }
 
+    private void OpenStream(string serviceId) {
+        ServiceStream stream = _streamCollection.OpenStream();
+        _packetWriter.SendCommand(new OpenStreamCommand(stream.StreamId, serviceId));
+    }
+
+    private void ProcessWorkItems() {
+        while (_workRequest.TryTake(out IWorkItemTx? item)) {
+            switch (item) {
+                case OpenStreamRequest req:
+                    OpenStream(req.ServiceId);
+                    break;
+                default:
+                    throw new Exception("Unknown Request");
+            }
+        }
+    }
+
     private void PollAndSendData() {
         byte[] incomingPacket = new byte[Packet.PACKET_LENGTH];
 
         while (_conThreadRunning) {
-            Thread.Sleep(500);
-            Console.WriteLine("POLL");
+            ProcessWorkItems();
+
             if (_packetWriter.GetNextPacket(out byte[]? outgoingPacket)) {
-                Console.WriteLine("Sending");
-                HexDump.Dump(outgoingPacket);
+                if (outgoingPacket == null) {
+                    throw new Exception("Packet was null");
+                }
                 SendRaw(outgoingPacket!);
             }
 
             if (ReadRaw(incomingPacket) > 0) {
-                Console.WriteLine("Recieved");
                 _packetReader.ParseAndDispatch(incomingPacket);
+            } else {
+                Thread.Sleep(50);
             }
         }
+
     }
 }
