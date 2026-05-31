@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using System.Data.SqlTypes;
+using System.Reflection.Metadata;
 using System.Security.Cryptography;
 using ZuneDeploy.Transport;
 
@@ -11,10 +12,15 @@ namespace ZuneDeploy.Tests;
 public class PacketWriterTests {
     private static void AssertPayloadMatches(ReadOnlySpan<byte> expected, ReadOnlySpan<byte> actual) {
         // Compare everything except Hash and Random Bytes
-        Assert.Equal(
-            expected.Slice(0, Packet.PAYLOAD_LENGTH + Packet.SEQID_LENGTH),
-            actual.Slice(0, Packet.PAYLOAD_LENGTH + Packet.SEQID_LENGTH)
-        );
+        try {
+            Assert.Equal(
+                expected.Slice(0, Packet.PAYLOAD_LENGTH + Packet.SEQID_LENGTH),
+                actual.Slice(0, Packet.PAYLOAD_LENGTH + Packet.SEQID_LENGTH)
+            );
+        } catch (Exception e) {
+            HexDump.DumpDiffPacket(expected, actual);
+            throw e;
+        }
     }
 
     private static void AssertHashesMatch(ReadOnlySpan<byte> expected, ReadOnlySpan<byte> actual) {
@@ -295,5 +301,123 @@ public class PacketWriterTests {
         var actualPacketSpan = actualPacket.AsSpan();
         AssertPayloadMatches(expectedPacket, actualPacketSpan);
         AssertHashesMatch(expectedPacket, actualPacketSpan);
+    }
+
+    [Fact]
+    public void ManyCommnads_TooBigForOnePacket() {
+        StreamCollection collection = new StreamCollection();
+        PacketWriter writer = new PacketWriter(collection);
+
+        int streamLength = Packet.PAYLOAD_LENGTH * 2;
+
+        // Write commands into queue
+        int totalBytes = 0;
+        var cmd = new CloseStreamCommand(0x42);
+        while (totalBytes < streamLength) {
+            totalBytes += cmd.LengthIncludingHeader;
+            writer.SendCommand(cmd);
+        }
+
+        // Generate expected packets
+        List<byte[]> expectedPackets = new List<byte[]>();
+        int numExpectedPackets = (int)Math.Ceiling(totalBytes / (double)Packet.PAYLOAD_LENGTH);
+        for (int i = 0; i < numExpectedPackets; i++) {
+            byte[] packet = TestUtil.FillPacket([
+                // Sequence Id
+                0x0, 0x0, 0x0, (byte)i
+            ]);
+            int position = 4;
+            while (position - 4 <= Packet.PAYLOAD_LENGTH - cmd.LengthIncludingHeader && totalBytes > 0) {
+                packet[position++] = 0;
+                packet[position++] = (byte)(cmd.RawBytes.Length >> 8);
+                packet[position++] = (byte)cmd.RawBytes.Length;
+                cmd.RawBytes.CopyTo(packet, position);
+                totalBytes -= cmd.LengthIncludingHeader;
+                position += cmd.RawBytes.Length;
+            }
+            expectedPackets.Add(packet);
+        }
+
+        // Compare with actual packets
+        foreach (byte[] expected in expectedPackets) {
+            bool didCreatePacket = writer.GetNextPacket(out byte[]? actualPacket);
+            Assert.True(didCreatePacket);
+
+            AssertPayloadMatches(expected, actualPacket);
+            AssertHashesMatch(expected, actualPacket);
+        }
+
+        // There should be no packets remaning
+        bool didCreatePacketLast = writer.GetNextPacket(out byte[]? actualPacketLast);
+        Assert.False(didCreatePacketLast);
+        Assert.Null(actualPacketLast);
+    }
+
+    [Fact]
+    public void ManyCommandsTwoMessages_TooLargeForOnePacket() {
+        StreamCollection collection = new StreamCollection();
+        PacketWriter writer = new PacketWriter(collection);
+
+        ServiceStream streamA = collection.OpenStream();
+        collection.OnStreamOpened(streamA.StreamId, 4096);
+
+        ServiceStream streamB = collection.OpenStream();
+        collection.OnStreamOpened(streamB.StreamId, 4096);
+
+        // Fill halve of packet with commands
+        var command = new CloseStreamCommand(0x42);
+        int numCommands = Packet.PAYLOAD_LENGTH / command.LengthIncludingHeader / 2;
+        byte[] commandBuffer = new byte[numCommands * command.LengthIncludingHeader];
+        for (int i = 0; i < numCommands; i++) {
+            writer.SendCommand(command);
+            commandBuffer[i * 5 + 0] = 0;
+            commandBuffer[i * 5 + 1] = 0;
+            commandBuffer[i * 5 + 2] = (byte)command.RawBytes.Length;
+            command.RawBytes.CopyTo(commandBuffer, i * 5 + 3);
+        }
+
+        // Create messages and packets
+        byte[] messageA = new byte[Packet.PAYLOAD_LENGTH];
+        Random.Shared.NextBytes(messageA);
+        byte[] messageB = new byte[Packet.PAYLOAD_LENGTH / 2];
+        Random.Shared.NextBytes(messageB);
+
+        streamA.Write(messageA);
+        streamA.Flush();
+
+        streamB.Write(messageB);
+        streamB.Flush();
+
+        var messageAPart1 = messageA.AsSpan().Slice(0, Packet.PAYLOAD_LENGTH - commandBuffer.Length - Message.HeaderLength);
+        var messageAPart2 = messageA.AsSpan().Slice(messageAPart1.Length);
+
+        var messageBPart1 = messageB.AsSpan().Slice(0, Packet.PAYLOAD_LENGTH - messageAPart2.Length - Message.HeaderLength * 2);
+        var messageBPart2 = messageB.AsSpan().Slice(messageBPart1.Length);
+
+        byte[][] expectedPackets = {
+            TestUtil.FillPacket([
+                0x0, 0x0, 0x0, 0x0,
+                ..commandBuffer,
+                0x0, ..TestUtil.UShort(messageAPart1.Length), ..messageAPart1,
+            ]),
+            TestUtil.FillPacket([
+                0x0, 0x0, 0x0, 0x1,
+                0x0, ..TestUtil.UShort(messageAPart2.Length), ..messageAPart2,
+                0x1, ..TestUtil.UShort(messageBPart1.Length), ..messageBPart1,
+            ]),
+            TestUtil.FillPacket([
+                0x0, 0x0, 0x0, 0x2,
+                0x1, ..TestUtil.UShort(messageBPart2.Length), ..messageBPart2,
+            ])
+        };
+
+        for (int i = 0; i < expectedPackets.Length; i++) {
+            Console.WriteLine($"Testing Packet {i}");
+            bool didCreatePacket = writer.GetNextPacket(out byte[]? packet);
+
+            Assert.True(didCreatePacket);
+            AssertPayloadMatches(expectedPackets[i], packet);
+            AssertHashesMatch(expectedPackets[i], packet);
+        }
     }
 }

@@ -31,4 +31,8 @@ internal static class TestUtil {
 
         return packet;
     }
+
+    public static byte[] UShort(int len) {
+        return [(byte)(len >> 8), (byte)(len)];
+    }
 }
