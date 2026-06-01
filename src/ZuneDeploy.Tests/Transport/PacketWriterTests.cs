@@ -408,16 +408,16 @@ public class PacketWriterTests {
             TestUtil.FillPacket([
                 0x0, 0x0, 0x0, 0x0,
                 ..commandBuffer,
-                0x0, ..TestUtil.UShort(messageAPart1.Length), ..messageAPart1,
+                0x1, ..TestUtil.UShort(messageAPart1.Length), ..messageAPart1,
             ]),
             TestUtil.FillPacket([
                 0x0, 0x0, 0x0, 0x1,
-                0x0, ..TestUtil.UShort(messageAPart2.Length), ..messageAPart2,
-                0x1, ..TestUtil.UShort(messageBPart1.Length), ..messageBPart1,
+                0x1, ..TestUtil.UShort(messageAPart2.Length), ..messageAPart2,
+                0x2, ..TestUtil.UShort(messageBPart1.Length), ..messageBPart1,
             ]),
             TestUtil.FillPacket([
                 0x0, 0x0, 0x0, 0x2,
-                0x1, ..TestUtil.UShort(messageBPart2.Length), ..messageBPart2,
+                0x2, ..TestUtil.UShort(messageBPart2.Length), ..messageBPart2,
             ])
         };
 
