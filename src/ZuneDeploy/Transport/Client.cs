@@ -16,8 +16,9 @@ public class Client {
     private StreamCollection _streamCollection;
     private PacketReader _packetReader;
     private PacketWriter _packetWriter;
-    private BlockingCollection<IWorkItemTx> _workRequest = new();
-    private BlockingCollection<IWorkItemRx> _workResponse = new();
+
+    private BlockingCollection<IWorkItem> _requests = new();
+    private Dictionary<byte, IWorkItem> _pendingRequests = new();
 
     public static Result TryConnect(out Client? device) {
         Console.WriteLine("Connecting...");
@@ -40,20 +41,22 @@ public class Client {
     }
 
     public ServiceStream ConnectToService(string serviceId) {
-        _workRequest.Add(new OpenStreamRequest { ServiceId = serviceId });
-        var response = _workResponse.Take();
-        switch (response) {
-            case OpenStreamResponse r: return r.Stream;
-            case RequestFailedResponse:
-            default:
-                throw new Exception("Failed to open stream");
-        }
+        return ConnectToServiceAsync(serviceId).GetAwaiter().GetResult();
+    }
+
+    public async Task<ServiceStream> ConnectToServiceAsync(string serviceId) {
+        var request = new OpenStreamRequest { ServiceId = serviceId };
+        _requests.Add(request);
+        return await request.Response.Task;
     }
 
     public void CloseStream(byte streamId) {
-        _workRequest.Add(new CloseStreamRequest {
-            StreamId = streamId
-        });
+        CloseStreamAsync(streamId).GetAwaiter().GetResult();
+    }
+    public async Task CloseStreamAsync(byte streamId) {
+        var request = new CloseStreamRequest { StreamId = streamId };
+        _requests.Add(request);
+        await request.Response.Task;
     }
 
     private Client(IntPtr deviceHandle) {
@@ -81,13 +84,24 @@ public class Client {
     private void OnStreamClosed(object? sender, StreamClosedCommand info) {
         Console.WriteLine($"StreamClosed id={info.StreamId}");
         _streamCollection.OnStreamClosed(info.StreamId);
+
+        var reqeust = _pendingRequests[info.StreamId];
+        if (reqeust is CloseStreamRequest && reqeust != null) {
+            ((CloseStreamRequest)reqeust).Response.SetResult();
+            _pendingRequests.Remove(info.StreamId);
+        }
     }
 
     private void OnStreamOpened(object? sender, StreamOpenedCommand info) {
         Console.WriteLine($"StreamOpened id={info.StreamId} buffer={info.BufferSize}");
         _streamCollection.OnStreamOpened(info.StreamId, info.BufferSize);
         _packetWriter.SendCommand(new AckOpenCommand(info.StreamId));
-        _workResponse.Add(new OpenStreamResponse { Stream = _streamCollection.GetStream(info.StreamId) });
+
+        var reqeust = _pendingRequests[info.StreamId];
+        if (reqeust is OpenStreamRequest && reqeust != null) {
+            ((OpenStreamRequest)reqeust).Response.SetResult(_streamCollection.GetStream(info.StreamId));
+            _pendingRequests.Remove(info.StreamId);
+        }
     }
 
     private void OnAckCancel(object? sender, AckCancelCommand info) {
@@ -96,7 +110,12 @@ public class Client {
 
     private void OnRequestRefused(object? sender, RequestRefusedCommand info) {
         Console.WriteLine($"RequestRefused id={info.StreamId}");
-        _workResponse.Add(new RequestFailedResponse());
+        // TODO: Close actual stream as well
+        var reqeust = _pendingRequests[info.StreamId];
+        if (reqeust is OpenStreamRequest && reqeust != null) {
+            ((OpenStreamRequest)reqeust).Response.SetException(new Exception($"Failed to open stream id={info.StreamId}"));
+            _pendingRequests.Remove(info.StreamId);
+        }
     }
 
     private void OnAckDisconnect(object? sender, AckDisconnectCommand info) {
@@ -159,26 +178,20 @@ public class Client {
         Console.WriteLine("Connected");
     }
 
-    private void OpenStream_WorkItem(string serviceId) {
-        ServiceStream stream = _streamCollection.OpenStream(CloseStream);
-        _packetWriter.SendCommand(new OpenStreamCommand(stream.StreamId, serviceId));
-        Console.WriteLine($"Requesting to open stream id={stream.StreamId} to service '{serviceId}'");
-    }
-
-    private void CloseStream_WorkItem(byte streamId) {
-        _streamCollection.CloseStream(streamId);
-        _packetWriter.SendCommand(new CloseStreamCommand(streamId));
-        Console.WriteLine($"Requesting to close stream id={streamId}");
-    }
-
     private void ProcessWorkItems() {
-        while (_workRequest.TryTake(out IWorkItemTx? item)) {
+        while (_requests.TryTake(out IWorkItem? item)) {
             switch (item) {
                 case OpenStreamRequest req:
-                    OpenStream_WorkItem(req.ServiceId);
+                    ServiceStream stream = _streamCollection.OpenStream(CloseStream);
+                    _packetWriter.SendCommand(new OpenStreamCommand(stream.StreamId, req.ServiceId));
+                    _pendingRequests.Add(stream.StreamId, req);
+                    Console.WriteLine($"Requesting to open stream id={stream.StreamId} to service '{req.ServiceId}'");
                     break;
                 case CloseStreamRequest req:
-                    CloseStream_WorkItem(req.StreamId);
+                    _streamCollection.CloseStream(req.StreamId);
+                    _packetWriter.SendCommand(new CloseStreamCommand(req.StreamId));
+                    _pendingRequests.Add(req.StreamId, req);
+                    Console.WriteLine($"Requesting to close stream id={req.StreamId}");
                     break;
                 default:
                     throw new Exception("Unknown Request");

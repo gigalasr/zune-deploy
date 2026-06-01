@@ -1,19 +1,13 @@
 namespace ZuneDeploy.Transport;
 
-internal interface IWorkItemTx { }
-internal interface IWorkItemRx { }
+internal interface IWorkItem { }
 
-
-internal record OpenStreamRequest : IWorkItemTx {
+internal record OpenStreamRequest : IWorkItem {
     public required string ServiceId { init; get; }
+    public TaskCompletionSource<ServiceStream> Response { get; } = new();
 }
 
-internal record CloseStreamRequest : IWorkItemTx {
+internal record CloseStreamRequest : IWorkItem {
     public required byte StreamId { init; get; }
+    public TaskCompletionSource Response { get; } = new();
 }
-
-internal record OpenStreamResponse : IWorkItemRx {
-    public required ServiceStream Stream { init; get; }
-}
-
-internal record RequestFailedResponse : IWorkItemRx { }
