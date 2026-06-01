@@ -103,7 +103,7 @@ public class PacketWriterTests {
         StreamCollection collection = new StreamCollection();
         PacketWriter writer = new PacketWriter(collection);
 
-        ServiceStream stream = collection.OpenStream();
+        ServiceStream stream = collection.OpenStream(null);
         collection.OnStreamOpened(stream.StreamId, 256);
 
         byte[] message = [0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa];
@@ -137,7 +137,7 @@ public class PacketWriterTests {
         StreamCollection collection = new StreamCollection();
         PacketWriter writer = new PacketWriter(collection);
 
-        ServiceStream stream = collection.OpenStream();
+        ServiceStream stream = collection.OpenStream(null);
         ushort CAPACITY = 256;
         collection.OnStreamOpened(stream.StreamId, CAPACITY);
 
@@ -200,7 +200,7 @@ public class PacketWriterTests {
         StreamCollection collection = new StreamCollection();
         PacketWriter writer = new PacketWriter(collection);
 
-        ServiceStream stream = collection.OpenStream();
+        ServiceStream stream = collection.OpenStream(null);
         ushort CAPACITY = 256;
         collection.OnStreamOpened(stream.StreamId, CAPACITY);
 
@@ -221,10 +221,10 @@ public class PacketWriterTests {
         StreamCollection collection = new StreamCollection();
         PacketWriter writer = new PacketWriter(collection);
 
-        ServiceStream streamA = collection.OpenStream();
+        ServiceStream streamA = collection.OpenStream(null);
         collection.OnStreamOpened(streamA.StreamId, 256);
 
-        ServiceStream streamB = collection.OpenStream();
+        ServiceStream streamB = collection.OpenStream(null);
         collection.OnStreamOpened(streamB.StreamId, 256);
 
         byte[] messageA = [0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa];
@@ -266,10 +266,10 @@ public class PacketWriterTests {
         StreamCollection collection = new StreamCollection();
         PacketWriter writer = new PacketWriter(collection);
 
-        ServiceStream streamA = collection.OpenStream();
+        ServiceStream streamA = collection.OpenStream(null);
         collection.OnStreamOpened(streamA.StreamId, 256);
 
-        ServiceStream streamB = collection.OpenStream();
+        ServiceStream streamB = collection.OpenStream(null);
         collection.OnStreamOpened(streamB.StreamId, 256);
 
         byte[] messageA = [0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa];
@@ -368,10 +368,10 @@ public class PacketWriterTests {
         StreamCollection collection = new StreamCollection();
         PacketWriter writer = new PacketWriter(collection);
 
-        ServiceStream streamA = collection.OpenStream();
+        ServiceStream streamA = collection.OpenStream(null);
         collection.OnStreamOpened(streamA.StreamId, 4096);
 
-        ServiceStream streamB = collection.OpenStream();
+        ServiceStream streamB = collection.OpenStream(null);
         collection.OnStreamOpened(streamB.StreamId, 4096);
 
         // Fill halve of packet with commands

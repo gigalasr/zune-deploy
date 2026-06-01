@@ -8,7 +8,7 @@ public class ServiceStreamTests {
 
     [Fact]
     public void TestRead() {
-        ServiceStream stream = new ServiceStream(0);
+        ServiceStream stream = new ServiceStream(0, null);
 
         byte[] expectedPayload = new byte[4096];
         Random.Shared.NextBytes(expectedPayload);
