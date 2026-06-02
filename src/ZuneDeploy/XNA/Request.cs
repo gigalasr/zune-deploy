@@ -81,9 +81,8 @@ public static class Request {
                     writer.Write((int)((Stream)value).Length);
                     break;
             }
-
-            writer.Flush();
         }
 
+        writer.Flush();
     }
 }

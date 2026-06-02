@@ -20,18 +20,6 @@ public class Client {
     private BlockingCollection<IWorkItem> _requests = new();
     private Dictionary<byte, IWorkItem> _pendingRequests = new();
 
-    public static Result TryConnect(out Client? device) {
-        Console.WriteLine("Connecting...");
-        var result = (Result)MTP.OpenConnection(out IntPtr deviceHandle);
-        if (result == Result.Ok) {
-            device = new Client(deviceHandle);
-        } else {
-            device = null;
-        }
-
-        return result;
-    }
-
     public void Close() {
         // TODO: Implement the actual closing commands i.e. CommandType.Disconnect
         Console.WriteLine("Closing Connection...");
@@ -40,28 +28,40 @@ public class Client {
         MTP.CloseConnection(_deviceHandle);
     }
 
+    /// <summary>
+    /// Open a new stream to a known service.
+    /// See <see cref="Service"/> for available services.
+    /// </summary>
+    /// <param name="serviceId">The name of the service to request</param>
+    /// <returns><see cref="ServiceStream"/> to the requested service</returns>
     public ServiceStream ConnectToService(string serviceId) {
         return ConnectToServiceAsync(serviceId).GetAwaiter().GetResult();
     }
 
+    /// <summary>
+    /// Open a new stream to a known service.
+    /// See <see cref="Service"/> for available services.
+    /// </summary>
+    /// <param name="serviceId">The name of the service to request</param>
+    /// <returns><see cref="ServiceStream"/> to the requested service</returns>
     public async Task<ServiceStream> ConnectToServiceAsync(string serviceId) {
         var request = new OpenStreamRequest { ServiceId = serviceId };
         _requests.Add(request);
         return await request.Response.Task;
     }
 
+    /// <summary>
+    /// Close a stream.
+    /// 
+    /// The zune will block any other open requsts to the same id
+    /// until we also send a close command to the zune. 
+    /// </summary>
+    /// <param name="streamId">The id of a stream to close</param>
     public void CloseStream(byte streamId) {
-        CloseStreamAsync(streamId).GetAwaiter().GetResult();
-    }
-    public async Task CloseStreamAsync(byte streamId) {
-        var request = new CloseStreamRequest { StreamId = streamId };
-        _requests.Add(request);
-        await request.Response.Task;
+        _requests.Add(new CloseStreamRequest { StreamId = streamId });
     }
 
-    private Client(IntPtr deviceHandle) {
-        _deviceHandle = deviceHandle;
-
+    public Client() {
         _streamCollection = new StreamCollection();
         _packetReader = new PacketReader(_streamCollection);
         _packetWriter = new PacketWriter(_streamCollection);
@@ -75,26 +75,30 @@ public class Client {
         _packetReader.OnKeepAlive += OnKeepAlive;
         _packetReader.OnDataProcessed += OnDataProcessed;
 
-        ShakeHands();
+        var open = new OpenConnectionRequest();
+        _requests.Add(open);
 
         _connectionThread = new Thread(PollAndSendData);
         _connectionThread.Start();
+
+        open.Response.Task.GetAwaiter().GetResult();
     }
 
+    /// <summary>
+    /// The <see cref="StreamClosedCommand"/> is sent by the Zune when it wants to close a stream
+    /// or as an acknowledgement that a stream was closed when we requested to close it. 
+    /// </summary>
     private void OnStreamClosed(object? sender, StreamClosedCommand info) {
         Console.WriteLine($"StreamClosed id={info.StreamId}");
-        _streamCollection.OnStreamClosed(info.StreamId);
-
-        // The Zune might close the stream before we request to close it 
-        // This happens in the case of the XnaChannelBroker for example
-        if (_pendingRequests.TryGetValue(info.StreamId, out IWorkItem? request)) {
-            if (request is CloseStreamRequest) {
-                ((CloseStreamRequest)request).Response.SetResult();
-                _pendingRequests.Remove(info.StreamId);
-            }
-        }
+        _streamCollection.CloseStream(info.StreamId);
     }
 
+    /// <summary>
+    /// The <see cref="StreamOpenedCommand"/> is sent by the Zune in response to a <see cref="OpenStreamCommand"/> 
+    /// in order to acknowledge that a stream was sucessfully opened. 
+    /// 
+    /// We have to acknowledge the open with a <see cref="AckOpenCommand"/>.
+    /// </summary>
     private void OnStreamOpened(object? sender, StreamOpenedCommand info) {
         Console.WriteLine($"StreamOpened id={info.StreamId} buffer={info.BufferSize}");
         _streamCollection.OnStreamOpened(info.StreamId, info.BufferSize);
@@ -107,10 +111,9 @@ public class Client {
         }
     }
 
-    private void OnAckCancel(object? sender, AckCancelCommand info) {
-        Console.WriteLine($"AckCancel id={info.StreamId}");
-    }
-
+    /// <summary>
+    /// Sent by the Zune when we try to open a stream to a service that does not exist
+    /// </summary>
     private void OnRequestRefused(object? sender, RequestRefusedCommand info) {
         Console.WriteLine($"RequestRefused id={info.StreamId}");
         // TODO: Close actual stream as well
@@ -119,6 +122,10 @@ public class Client {
             ((OpenStreamRequest)reqeust).Response.SetException(new Exception($"Failed to open stream id={info.StreamId}"));
             _pendingRequests.Remove(info.StreamId);
         }
+    }
+
+    private void OnAckCancel(object? sender, AckCancelCommand info) {
+        Console.WriteLine($"AckCancel id={info.StreamId}");
     }
 
     private void OnAckDisconnect(object? sender, AckDisconnectCommand info) {
@@ -130,7 +137,7 @@ public class Client {
     }
 
     private void OnKeepAlive(object? sender, KeepAliveCommand info) {
-        Console.WriteLine($"KeepAlive arg={info.Flags}");
+        //Console.WriteLine($"KeepAlive arg={info.Flags}");
     }
 
     private void OnDataProcessed(object? sender, DataProcessedCommand info) {
@@ -160,7 +167,14 @@ public class Client {
         return length;
     }
 
-    private void ShakeHands() {
+    private bool OpenConnectionAndShakeHands(TaskCompletionSource ts) {
+        var result = (Result)MTP.OpenConnection(out IntPtr deviceHandle);
+        if (result != Result.Ok) {
+            ts.SetException(new Exception("Failed to Open Connection"));
+            return false;
+        }
+
+        _deviceHandle = deviceHandle;
         Console.WriteLine("Waiting for Handshake");
 
         byte[] firstPacket = new byte[Packet.PACKET_LENGTH];
@@ -172,46 +186,53 @@ public class Client {
         for (int i = 0; i < expected.Length; i++) {
             if (firstPacket[i] != expected[i]) {
                 HexDump.Dump(firstPacket);
-                throw new Exception("Handshake Failed");
+                ts.SetException(new Exception("Handshake Failed"));
+                return false;
             }
         }
 
         SendRaw(HelloMessage.CreateMessage());
 
         Console.WriteLine("Connected");
+
+        ts.SetResult();
+        return true;
     }
 
-    private void ProcessWorkItems() {
+    private bool ProcessWorkItems() {
+        bool shouldContinueRunning = true;
+
         while (_requests.TryTake(out IWorkItem? item)) {
             switch (item) {
                 case OpenStreamRequest req:
-                    ServiceStream stream = _streamCollection.OpenStream(CloseStream);
+                    ServiceStream stream = _streamCollection.CreateStream(CloseStream);
                     _packetWriter.SendCommand(new OpenStreamCommand(stream.StreamId, req.ServiceId));
                     _pendingRequests.Add(stream.StreamId, req);
                     Console.WriteLine($"Requesting to open stream id={stream.StreamId} to service '{req.ServiceId}'");
                     break;
                 case CloseStreamRequest req:
-                    if (_streamCollection.IsStreamOpen(req.StreamId)) {
-                        _streamCollection.CloseStream(req.StreamId);
-                        _pendingRequests.Add(req.StreamId, req);
-                        Console.WriteLine($"Requesting to close stream id={req.StreamId}");
-                    } else {
-                        _packetWriter.SendCommand(new CloseStreamCommand(req.StreamId));
-                        req.Response.SetResult();
-                        Console.WriteLine($"Closeing stream id={req.StreamId}");
-                    }
+                    _streamCollection.CloseStream(req.StreamId);
+                    _packetWriter.SendCommand(new CloseStreamCommand(req.StreamId));
+                    Console.WriteLine($"Requesting to close stream id={req.StreamId}");
+                    break;
+                case OpenConnectionRequest req:
+                    shouldContinueRunning = OpenConnectionAndShakeHands(req.Response);
                     break;
                 default:
                     throw new Exception("Unknown Request");
             }
         }
+
+        return shouldContinueRunning;
     }
 
     private void PollAndSendData() {
         byte[] incomingPacket = new byte[Packet.PACKET_LENGTH];
 
         while (_conThreadRunning) {
-            ProcessWorkItems();
+            if (!ProcessWorkItems()) {
+                break;
+            }
 
             if (_packetWriter.GetNextPacket(out byte[]? outgoingPacket)) {
                 if (outgoingPacket == null) {

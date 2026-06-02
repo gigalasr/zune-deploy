@@ -10,15 +10,9 @@ class Program {
     static void Main(string[] args) {
         Console.CancelKeyPress += OnExit;
 
-        var result = Client.TryConnect(out Client? device);
-        if (result != Result.Ok || device == null) {
-            Console.WriteLine($"Could not connect to deivce: {result}");
-            return;
-        }
 
-        _client = device;
-
-        Channel chan = new Channel(device, Channel.ApplicationDeploymentChannel);
+        _client = new Client();
+        Channel chan = new Channel(_client, Channel.ApplicationLaunchChannel);
 
         while (true) { }
     }

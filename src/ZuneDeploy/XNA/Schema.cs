@@ -1,10 +1,11 @@
 using System.Collections.ObjectModel;
+using System.Text;
 
 namespace ZuneDeploy.XNA;
 
 public static class Schema {
     public static ReadOnlyCollection<RemoteProcedure> ReadFromStream(Stream stream) {
-        BinaryReader reader = new BinaryReader(stream);
+        BinaryReader reader = new BinaryReader(stream, Encoding.Unicode);
         Message.ValidateHeaderAndType(reader, MessageType.Schema);
 
         List<RemoteProcedure> procedures = new();

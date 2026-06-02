@@ -3,6 +3,7 @@ using ZuneDeploy.Transport;
 
 namespace ZuneDeploy.XNA;
 
+// TODO: Implement IDisposable
 public class Channel {
     public static readonly Guid ApplicationLaunchChannel = new Guid("A40D216D-FBD3-40d4-B852-DE77478C1475");
     public static readonly Guid RuntimeDeploymentChannel = new Guid("30D0E81E-D272-4735-ABD3-918ADAD29FD3");
@@ -28,6 +29,10 @@ public class Channel {
         _stream = client.ConnectToService(serviceId);
         var procs = Schema.ReadFromStream(_stream);
 
+        foreach (var proc in procs) {
+            _procedures.Add(proc.Name, proc);
+        }
+
         Console.WriteLine("Channel Schema");
         foreach (var proc in procs) {
             Console.Write(proc.Name);
@@ -43,6 +48,12 @@ public class Channel {
             }
             Console.WriteLine(")");
         }
+
+        Request.WriteToStream(_stream, _procedures["EnumerateAvailableServices"]);
+        var res = Response.ReadFromStream(_stream);
+        Console.WriteLine("Response" + res.Value);
+        Console.WriteLine(res.Value.GetType().Name);
+
     }
 
     public object Invoke(string name, params object[] arguments) {

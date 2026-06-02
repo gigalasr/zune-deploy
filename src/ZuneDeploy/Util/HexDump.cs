@@ -4,18 +4,34 @@ namespace ZuneDeploy;
 
 internal static class HexDump {
     public static void Dump(ReadOnlySpan<byte> bytes) {
-        StringBuilder s = new StringBuilder();
         const int bytesPerLine = 16;
+        var s = new StringBuilder();
 
-        for (int i = 0; i < bytes.Length; i++) {
-            if (i % bytesPerLine == 0) {
-                s.Append($"\n{i:X8}: ");
+        for (int i = 0; i < bytes.Length; i += bytesPerLine) {
+            s.Append($"{i:X8}: ");
+
+            int lineBytes = Math.Min(bytesPerLine, bytes.Length - i);
+
+            // Hex bytes
+            for (int j = 0; j < lineBytes; j++)
+                s.Append($"{bytes[i + j]:X2} ");
+
+            // Pad incomplete last line so ASCII column is aligned
+            for (int j = lineBytes; j < bytesPerLine; j++)
+                s.Append("   ");
+
+            // ASCII representation
+            s.Append(" |");
+            for (int j = 0; j < lineBytes; j++) {
+                byte b = bytes[i + j];
+                s.Append(b >= 0x20 && b < 0x7F ? (char)b : '.');
             }
+            s.Append('|');
 
-            s.Append($"{bytes[i]:X2} ");
+            s.AppendLine();
         }
 
-        Console.WriteLine(s);
+        Console.Write(s);
     }
 
     public static void DumpDiffPacket(ReadOnlySpan<byte> bytes, ReadOnlySpan<byte> compare) {
