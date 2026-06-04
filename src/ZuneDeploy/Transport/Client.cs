@@ -47,6 +47,7 @@ public class Client {
     public async Task<ServiceStream> ConnectToServiceAsync(string serviceId) {
         var request = new OpenStreamRequest { ServiceId = serviceId };
         _requests.Add(request);
+        // TODO: Implement canceling the request on timeout? 
         return await request.Response.Task;
     }
 
@@ -244,7 +245,8 @@ public class Client {
             if (ReadRaw(incomingPacket) > 0) {
                 _packetReader.ParseAndDispatch(incomingPacket);
             } else {
-                Thread.Sleep(50);
+                // The original driver waits 50ms when the Zune has nothing to send 
+                Thread.Sleep(25);
             }
         }
 

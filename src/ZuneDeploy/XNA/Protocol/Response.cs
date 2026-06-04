@@ -1,16 +1,17 @@
 using System.Text;
 using ZuneDeploy.Transport;
 
-namespace ZuneDeploy.XNA;
+namespace ZuneDeploy.XNA.Protocol;
 
-
-public class Response {
+internal class Response {
     public object Value { init; get; }
     public bool IsDataStreamRequest { init; get; }
+    public ParameterType Type { init; get; }
 
-    private Response(object value, bool isDataStreamRequest) {
+    private Response(ParameterType type, object value, bool isDataStreamRequest) {
         Value = value;
         IsDataStreamRequest = isDataStreamRequest;
+        Type = type;
     }
 
     public static T ReadFromStream<T>(ServiceStream stream) {
@@ -68,6 +69,6 @@ public class Response {
                 throw new InvalidDataException($"Invalid Parameter Type: {type}");
         }
 
-        return new Response(value, isStreamReq);
+        return new Response(type, value, isStreamReq);
     }
 }

@@ -11,6 +11,8 @@ public class ServiceStream : Stream {
     public override bool CanWrite => true;
     public override bool CanSeek => false;
 
+    private bool _disposed = false;
+
     private BlockingCollection<Message> _incomingPackets = new();
     private BlockingCollection<Message> _outgoingPackets = new();
 
@@ -78,9 +80,18 @@ public class ServiceStream : Stream {
         return _outgoingPackets.TryTake(out item);
     }
 
+    /// <summary>
+    /// Cleanup stream resources
+    /// </summary>
+    /// <param name="disposing">true if called from Dispose(), false if called from finalizer</param>
     protected override void Dispose(Boolean disposing) {
+        if (_disposed) {
+            return;
+        }
+
         if (disposing) {
             _closeStream?.Invoke(StreamId);
+            _disposed = true;
         }
     }
 

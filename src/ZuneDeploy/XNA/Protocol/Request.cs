@@ -1,10 +1,10 @@
 using System.Text;
 using ZuneDeploy.Transport;
 
-namespace ZuneDeploy.XNA;
+namespace ZuneDeploy.XNA.Protocol;
 
 
-public static class Request {
+internal static class Request {
     private static void ExpectType<T>(object val) {
         if (val is not T) {
             throw new ArgumentException($"Expected {typeof(T).Name}, but got {val.GetType().Name}");
@@ -28,6 +28,10 @@ public static class Request {
         for (int i = 0; i < args.Length; i++) {
             var definition = proc.Parameters[i];
             var value = args[i];
+
+            if (value == null) {
+                throw new ArgumentException($"Argument '{definition.Name}' at idx={i} cannot be null", "args");
+            }
 
             // The original driver sends 0 instead of 1 for boolean, probably a mistake but works out because of the size
             // We'll send a 1 for now, as that should be the correct value
@@ -77,6 +81,7 @@ public static class Request {
                     break;
                 case ParameterType.Stream:
                     ExpectType<Stream>(value);
+                    // TODO: Check if we really need to to i + 1
                     writer.Write((byte)(i + 1));
                     writer.Write((int)((Stream)value).Length);
                     break;
@@ -84,5 +89,33 @@ public static class Request {
         }
 
         writer.Flush();
+    }
+
+    private const int MAX_CHUNK_BYTES = 0x1FFFB;
+    public static void WriteDataStreamToStream(ServiceStream target, Stream source) {
+        if (source.Length > int.MaxValue) {
+            throw new Exception("Parameter Streams can not be longer than 2 GB");
+        }
+
+        BinaryWriter bw = new BinaryWriter(target);
+
+        // The Zune will choke with chunks > 128 KiB
+        int len = (int)Math.Min(source.Length, MAX_CHUNK_BYTES);
+        byte[] buffer = new byte[len];
+
+        while (source.Length - source.Position > 0) {
+            int read = source.Read(buffer, 0, len);
+            if (read == 0) {
+                throw new Exception("Unexpected end of stream reached");
+            }
+
+            Console.WriteLine($"Sending Chunk len={read}. Progress: {source.Position}/{source.Length}");
+
+            // If we ever wanted to cancel the transfer, we can send a message only containg TRUE to stop 
+            bw.Write(false);
+            bw.Write(read);
+            bw.Write(buffer, 0, read);
+            bw.Flush();
+        }
     }
 }

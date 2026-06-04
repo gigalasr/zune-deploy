@@ -1,7 +1,12 @@
-namespace ZuneDeploy.XNA;
+namespace ZuneDeploy.XNA.Protocol;
 
+internal enum MessageType : byte {
+    Schema = 0,
+    Request = 1,
+    Response = 2
+}
 
-public abstract class Message {
+internal abstract class Message {
     internal static readonly byte[] HeaderMagicValue = [0x58, 0x4e, 0x41, 0x46, 0x54, 0x57]; // XNAFTW
 
     internal static void ValidateHeaderAndType(BinaryReader reader, MessageType expectedType) {
