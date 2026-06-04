@@ -109,8 +109,6 @@ internal static class Request {
                 throw new Exception("Unexpected end of stream reached");
             }
 
-            Console.WriteLine($"Sending Chunk len={read}. Progress: {source.Position}/{source.Length}");
-
             // If we ever wanted to cancel the transfer, we can send a message only containg TRUE to stop 
             bw.Write(false);
             bw.Write(read);

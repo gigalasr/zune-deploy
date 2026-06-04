@@ -245,8 +245,10 @@ public class Client {
             if (ReadRaw(incomingPacket) > 0) {
                 _packetReader.ParseAndDispatch(incomingPacket);
             } else {
-                // The original driver waits 50ms when the Zune has nothing to send 
-                Thread.Sleep(25);
+                // The original driver waits 50ms when the Zune has nothing to send .
+                // It might be better to switch to two seperate therads for sending and recieving.
+                // However, the zune does not like it if we send data too quick, so we have to throtle it anyways.
+                Thread.Sleep(1);
             }
         }
 
