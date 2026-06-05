@@ -3,7 +3,7 @@ using ZuneDeploy.XNA.Protocol;
 
 namespace ZuneDeploy.XNA.Channels;
 
-public class DeployChannel(Client client) : Channel(client, _channelGuid) {
+public class GameDeployChannel(Client client) : Channel(client, _channelGuid) {
     private static readonly Guid _channelGuid = new Guid("AA3C2881-4EB9-4af6-8137-635C2E64CE4A");
 
     /// <summary>
@@ -18,7 +18,6 @@ public class DeployChannel(Client client) : Channel(client, _channelGuid) {
         }
         return Invoke<bool>("OpenGameContainer", containerId, titleName);
     }
-
 
     /// <summary>
     /// ?
@@ -56,10 +55,8 @@ public class DeployChannel(Client client) : Channel(client, _channelGuid) {
     /// <param name="fileContent">File to upload</param>
     /// <exception cref="Exception">Thrown if file is bigger than 2 GB</exception>
     public void PutFileInContainer(string pathInContainer, Stream fileContent) {
-        if (fileContent.Length > int.MaxValue) {
-            throw new Exception("File too big");
-        }
-        ValidateFilePath(pathInContainer);
+        ChannelValidation.ValidateFileStream(fileContent);
+        ChannelValidation.ValidateFilePath(pathInContainer);
         Invoke("PutFileInContainer", pathInContainer, fileContent);
     }
 
@@ -69,7 +66,7 @@ public class DeployChannel(Client client) : Channel(client, _channelGuid) {
     /// <param name="pathInContainer">File path in the container on the Zune</param>
     /// <returns>True if file was removed</returns>
     public bool RemoveFileFromContainer(string pathInContainer) {
-        ValidateFilePath(pathInContainer);
+        ChannelValidation.ValidateFilePath(pathInContainer);
         return Invoke<bool>("RemoveFileFromContainer", pathInContainer);
     }
 
@@ -104,16 +101,5 @@ public class DeployChannel(Client client) : Channel(client, _channelGuid) {
     /// </summary>
     public void ClearThumbnail() {
         Invoke("ClearContainThumbnail");
-    }
-
-    private void ValidateFilePath(string path) {
-        if (path.Length > 40) {
-            throw new Exception("Max file path length is 40");
-        }
-        foreach (char c in path) {
-            if (c >= '\u0080') {
-                throw new Exception($"Invalid Character {c} in file path");
-            }
-        }
     }
 }

@@ -3,6 +3,28 @@ _This project is not afiliated with or endorsed by microsoft_
 
 CLI tool for deploying XNA applications to the Zune on linux.
 
+
+## Progress
+Main:
+- [x] Deploy Channel
+- [ ] CLI
+- [ ] Progress Callback for file uploads
+- [ ] Launch Channel
+- [ ] Runtime Deploy Channel 
+- [ ] Container Representation 
+  - [ ] Folder Based
+    - [ ] With CFG    
+    - [ ] With JSON
+  - [ ] .ccgame 
+
+Meta:
+- [ ] GitHub CI for tests
+- [ ] GitHub CI for AppImage
+- [ ] Support for windows and macos? (Only needs the correct cmake flags for aftl I think?)
+- [ ] Better Readme 
+- [ ] Increase test code cov
+- [ ] System tests from captured data?
+
 ## Build
 ```shell
 dotnet build

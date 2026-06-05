@@ -41,9 +41,9 @@ auto OpenConnection(ZuneDevice::Ptr* out_devicePtr) -> Result {
     auto session = device->OpenSession(1);
 
     auto devinfo = session->GetDeviceInfo();
-    std::cout << "Device: " << devinfo.Manufacturer << " " << devinfo.Model << std::endl;
-    std::cout << "Version: " << devinfo.DeviceVersion << std::endl;
-    std::cout << "Serial: " << devinfo.SerialNumber << std::endl;
+    // std::cout << "Device: " << devinfo.Manufacturer << " " << devinfo.Model << std::endl;
+    // std::cout << "Version: " << devinfo.DeviceVersion << std::endl;
+    // std::cout << "Serial: " << devinfo.SerialNumber << std::endl;
 
     session->GetDeviceProperty(mtp::DeviceProperty(0xD21A));
 

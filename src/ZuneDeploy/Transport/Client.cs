@@ -245,9 +245,10 @@ public class Client {
             if (ReadRaw(incomingPacket) > 0) {
                 _packetReader.ParseAndDispatch(incomingPacket);
             } else {
-                // The original driver waits 50ms when the Zune has nothing to send .
+                // The original driver waits 50ms when the Zune has nothing to send.
                 // It might be better to switch to two seperate therads for sending and recieving.
                 // However, the zune does not like it if we send data too quick, so we have to throtle it anyways.
+                // TODO: On MTP Error Code 0xa22a, increase the timeout to give the zune some time to crunch the data.
                 Thread.Sleep(1);
             }
         }

@@ -33,8 +33,26 @@ public class Zune {
     /// Opens a new <see cref="Channel"/> to the remote XNA Deploy Service.
     /// Use this channel to deploy files, games, applications to the Zune.
     /// </summary>
-    /// <returns><see cref="DeployChannel"/></returns>
-    public DeployChannel OpenXNADeployChannel() {
-        return new DeployChannel(_client);
+    /// <returns><see cref="GameDeployChannel"/></returns>
+    public GameDeployChannel OpenXNAGameDeployChannel() {
+        return new GameDeployChannel(_client);
+    }
+
+    /// <summary>
+    /// Opens a new <see cref="Channel"/> to the remote XNA Runtime Deploy Service.
+    /// Use this to deploy xna / .net runtimes to a container. 
+    /// </summary>
+    /// <returns><<see cref="RuntimeDeployChannel"/>/returns>
+    public RuntimeDeployChannel OpenXNARuntimeDeployChannel() {
+        return new RuntimeDeployChannel(_client);
+    }
+
+    /// <summary>
+    /// Opens a new <see cref="Channel"/> to the remote XNA Launch Service.
+    /// Use this to launch a title / game / app. 
+    /// </summary>
+    /// <returns><<see cref="LaunchChannel"/>/returns>
+    public LaunchChannel OpenXnaLaunchChannel() {
+        return new LaunchChannel(_client);
     }
 }

@@ -5,8 +5,6 @@ namespace ZuneDeploy.XNA.Protocol;
 
 public class Channel : IDisposable {
     public static readonly Guid ApplicationLaunchChannel = new Guid("A40D216D-FBD3-40d4-B852-DE77478C1475");
-    public static readonly Guid RuntimeDeploymentChannel = new Guid("30D0E81E-D272-4735-ABD3-918ADAD29FD3");
-    public static readonly Guid ApplicationDeploymentChannel = new Guid("AA3C2881-4EB9-4af6-8137-635C2E64CE4A");
 
     private static readonly RemoteProcedure _createChannel = new RemoteProcedure(
         "CreateChannel",
