@@ -87,6 +87,7 @@ internal class StreamCollection() {
     /// <param name="bufferDelta">How many bytes are now available in the buffer</param>
     public void OnDataProcessed(byte streamId, ushort bufferDelta) {
         var info = _streams[streamId];
+        info.Stream.InvokeOnBytesWritten(bufferDelta);
         info.HostBufferSize += bufferDelta;
     }
 

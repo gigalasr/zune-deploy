@@ -1,10 +1,15 @@
 using ZuneDeploy.Transport;
+using ZuneDeploy.XNA.Data;
 using ZuneDeploy.XNA.Protocol;
 
 namespace ZuneDeploy.XNA.Channels;
 
 public class GameDeployChannel(Client client) : Channel(client, _channelGuid) {
     private static readonly Guid _channelGuid = new Guid("AA3C2881-4EB9-4af6-8137-635C2E64CE4A");
+
+    public bool OpenContainer(ApplicationContainer container) {
+        return OpenGameContainer(container.ContainerId, container.DisplayName);
+    }
 
     /// <summary>
     /// Opens a Game Container
@@ -75,6 +80,10 @@ public class GameDeployChannel(Client client) : Channel(client, _channelGuid) {
             name = name.Substring(0, 127);
         }
         return Invoke("PutGameProperties", containerId, name, description, copyright, startupAssembly, xnaFrameworkVersion);
+    }
+
+    public object PutGamePropertiesEx(ApplicationContainer container) {
+        return PutGamePropertiesEx(container.ContainerId, container.DisplayName, container.Description, container.EntryPoint, container.RuntimeToken);
     }
 
     public object PutGamePropertiesEx(Guid containerId, string name, string description, string startupAssembly, string runtimeProfile) {

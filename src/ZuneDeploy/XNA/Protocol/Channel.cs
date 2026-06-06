@@ -4,7 +4,6 @@ namespace ZuneDeploy.XNA.Protocol;
 
 
 public class Channel : IDisposable {
-    public static readonly Guid ApplicationLaunchChannel = new Guid("A40D216D-FBD3-40d4-B852-DE77478C1475");
 
     private static readonly RemoteProcedure _createChannel = new RemoteProcedure(
         "CreateChannel",
@@ -14,6 +13,8 @@ public class Channel : IDisposable {
     private Schema _schema;
     private ServiceStream _stream;
     private bool _disposed = false;
+
+    public event EventHandler<ushort>? OnBytesWritten;
 
     public Channel(Client client, Guid channelId) {
         int serviceIdTag = -1;
@@ -27,7 +28,9 @@ public class Channel : IDisposable {
         _stream = client.ConnectToService(serviceId);
         _schema = Schema.ReadFromStream(_stream);
 
-        Console.WriteLine(this.ToString());
+        _stream.OnBytesWritten += (_, bytes) => {
+            OnBytesWritten?.Invoke(null, bytes);
+        };
     }
 
     public override string ToString() {
@@ -64,7 +67,6 @@ public class Channel : IDisposable {
         var response = Response.ReadFromStream(_stream);
         while (response.IsDataStreamRequest) {
             int id = Convert.ToUInt16(response.Value) - 1;
-            Console.WriteLine($"Writing Stream Parameter id={id}");
 
             var stream = arguments[id];
             if (stream is not Stream) {

@@ -22,7 +22,7 @@ public class Client {
 
     public void Close() {
         // TODO: Implement the actual closing commands i.e. CommandType.Disconnect
-        Console.WriteLine("Closing Connection...");
+        //Console.WriteLine("Closing Connection...");
         _conThreadRunning = false;
         _connectionThread.Join();
         MTP.CloseConnection(_deviceHandle);
@@ -90,7 +90,7 @@ public class Client {
     /// or as an acknowledgement that a stream was closed when we requested to close it. 
     /// </summary>
     private void OnStreamClosed(object? sender, StreamClosedCommand info) {
-        Console.WriteLine($"StreamClosed id={info.StreamId}");
+        //Console.WriteLine($"StreamClosed id={info.StreamId}");
         _streamCollection.CloseStream(info.StreamId);
     }
 
@@ -101,7 +101,7 @@ public class Client {
     /// We have to acknowledge the open with a <see cref="AckOpenCommand"/>.
     /// </summary>
     private void OnStreamOpened(object? sender, StreamOpenedCommand info) {
-        Console.WriteLine($"StreamOpened id={info.StreamId} buffer={info.BufferSize}");
+        //Console.WriteLine($"StreamOpened id={info.StreamId} buffer={info.BufferSize}");
         _streamCollection.OnStreamOpened(info.StreamId, info.BufferSize);
         _packetWriter.SendCommand(new AckOpenCommand(info.StreamId));
 
@@ -116,7 +116,7 @@ public class Client {
     /// Sent by the Zune when we try to open a stream to a service that does not exist
     /// </summary>
     private void OnRequestRefused(object? sender, RequestRefusedCommand info) {
-        Console.WriteLine($"RequestRefused id={info.StreamId}");
+        //Console.WriteLine($"RequestRefused id={info.StreamId}");
         // TODO: Close actual stream as well
         var reqeust = _pendingRequests[info.StreamId];
         if (reqeust is OpenStreamRequest && reqeust != null) {
@@ -126,15 +126,15 @@ public class Client {
     }
 
     private void OnAckCancel(object? sender, AckCancelCommand info) {
-        Console.WriteLine($"AckCancel id={info.StreamId}");
+        //Console.WriteLine($"AckCancel id={info.StreamId}");
     }
 
     private void OnAckDisconnect(object? sender, AckDisconnectCommand info) {
-        Console.WriteLine($"AckDisconnect arg={info.Arg}");
+        //Console.WriteLine($"AckDisconnect arg={info.Arg}");
     }
 
     private void OnHostRebooting(object? sender, RebootingCommand info) {
-        Console.WriteLine($"HostRebooting arg={info.Flags}");
+        //Console.WriteLine($"HostRebooting arg={info.Flags}");
     }
 
     private void OnKeepAlive(object? sender, KeepAliveCommand info) {
@@ -142,7 +142,7 @@ public class Client {
     }
 
     private void OnDataProcessed(object? sender, DataProcessedCommand info) {
-        Console.WriteLine($"DataProcessed id={info.StreamId} consumed={info.BytesConsumed}");
+        //Console.WriteLine($"DataProcessed id={info.StreamId} consumed={info.BytesConsumed}");
         _streamCollection.OnDataProcessed(info.StreamId, info.BytesConsumed);
     }
 
@@ -150,6 +150,7 @@ public class Client {
         int sendResult = MTP.SendData(_deviceHandle, data, data.Length);
 
         if ((Result)sendResult != Result.Ok) {
+            _conThreadRunning = false; // TODO: Propper Error Handling
             Console.WriteLine("Non OK Result (send): " + sendResult);
             return false;
         }
@@ -161,6 +162,7 @@ public class Client {
     private int ReadRaw(byte[] destination) {
         var reuslt = (Result)MTP.PollData(_deviceHandle, destination, destination.Length, out int length);
         if (reuslt != Result.Ok) {
+            _conThreadRunning = false; // TODO: Propper Error Handling
             Console.WriteLine("Non OK Result (recieve): " + reuslt);
             return -1;
         }
@@ -171,12 +173,11 @@ public class Client {
     private bool OpenConnectionAndShakeHands(TaskCompletionSource ts) {
         var result = (Result)MTP.OpenConnection(out IntPtr deviceHandle);
         if (result != Result.Ok) {
-            ts.SetException(new Exception("Failed to Open Connection"));
+            ts.SetException(new Exception($"Failed to Open Connection ({result})"));
             return false;
         }
 
         _deviceHandle = deviceHandle;
-        Console.WriteLine("Waiting for Handshake");
 
         byte[] firstPacket = new byte[Packet.PACKET_LENGTH];
         while (ReadRaw(firstPacket) <= 0) {
@@ -194,8 +195,6 @@ public class Client {
 
         SendRaw(HelloMessage.CreateMessage());
 
-        Console.WriteLine("Connected");
-
         ts.SetResult();
         return true;
     }
@@ -209,12 +208,12 @@ public class Client {
                     ServiceStream stream = _streamCollection.CreateStream(CloseStream);
                     _packetWriter.SendCommand(new OpenStreamCommand(stream.StreamId, req.ServiceId));
                     _pendingRequests.Add(stream.StreamId, req);
-                    Console.WriteLine($"Requesting to open stream id={stream.StreamId} to service '{req.ServiceId}'");
+                    //Console.WriteLine($"Requesting to open stream id={stream.StreamId} to service '{req.ServiceId}'");
                     break;
                 case CloseStreamRequest req:
                     _streamCollection.CloseStream(req.StreamId);
                     _packetWriter.SendCommand(new CloseStreamCommand(req.StreamId));
-                    Console.WriteLine($"Requesting to close stream id={req.StreamId}");
+                    //Console.WriteLine($"Requesting to close stream id={req.StreamId}");
                     break;
                 case OpenConnectionRequest req:
                     shouldContinueRunning = OpenConnectionAndShakeHands(req.Response);

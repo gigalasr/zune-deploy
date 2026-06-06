@@ -24,6 +24,8 @@ public class ServiceStream : Stream {
     internal delegate void CloseStream(byte streamId);
     private readonly CloseStream? _closeStream;
 
+    public event EventHandler<ushort>? OnBytesWritten;
+
     /// <summary>
     /// Please request a ServiceStream via <see cref="Client.ConnectToService"/>
     /// </summary>
@@ -78,6 +80,10 @@ public class ServiceStream : Stream {
 
     internal bool CollectMessage(out Message? item) {
         return _outgoingPackets.TryTake(out item);
+    }
+
+    internal void InvokeOnBytesWritten(ushort bytes) {
+        OnBytesWritten?.Invoke(null, bytes);
     }
 
     /// <summary>
