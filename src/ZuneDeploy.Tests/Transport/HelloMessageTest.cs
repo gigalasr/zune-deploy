@@ -5,7 +5,7 @@ namespace ZuneDeploy.Tests;
 
 public class HelloMessageTest {
     [Fact]
-    void CreateMessage() {
+    public void CreateMessage() {
         byte[] actual = HelloMessage.CreateMessage("Zune HD");
         byte[] expected = [
            0x0, 0x0,  0x0, 0x0,  0x0, 0x0,  0x50, 0xC5,

@@ -83,7 +83,7 @@ public class GameDeployChannel(Client client) : Channel(client, _channelGuid) {
     }
 
     public object PutGamePropertiesEx(ApplicationContainer container) {
-        return PutGamePropertiesEx(container.ContainerId, container.DisplayName, container.Description, container.EntryPoint, container.RuntimeToken);
+        return PutGamePropertiesEx(container.ContainerId, container.DisplayName, container.Description ?? "", container.EntryPoint, container.RuntimeToken);
     }
 
     public object PutGamePropertiesEx(Guid containerId, string name, string description, string startupAssembly, string runtimeProfile) {

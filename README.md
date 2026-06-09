@@ -7,15 +7,21 @@ CLI tool for deploying XNA applications to the Zune on linux.
 ## Progress
 Main:
 - [x] Deploy Channel
-- [ ] CLI
-- [ ] Progress Callback for file uploads
+- [x] CLI
+- [x] Progress Callback for file uploads
 - [x] Launch Channel
 - [x] Runtime Deploy Channel 
 - [ ] Container Representation 
   - [ ] Folder Based
-    - [ ] With CFG    
+    - [x] With CFG    
     - [ ] With JSON
   - [ ] .ccgame 
+- [ ] Deploy Runtimes 
+  - Deploy Kit always deploys the newest version of the runtime 
+  - [ ] Detect Zune Types 
+    - Zune4 -> ZuneHD
+    - Zune -> Other Zunes
+- [ ] Cleanly close connection
 
 Meta:
 - [ ] GitHub CI for tests

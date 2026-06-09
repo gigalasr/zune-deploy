@@ -21,7 +21,7 @@ public class Spinner {
     private TextWriter _originalOut;
     private TextWriter _newOut;
 
-    private Task? _spinnerTask;
+    private Task? _spinnerTask = null;
     private CancellationTokenSource _cts = new();
 
 
@@ -32,18 +32,35 @@ public class Spinner {
         _newOut = new Writer(Console.Out.Encoding, this);
     }
 
+    public T SpinFor<T>(string label, string stopLabel, Func<T> work) {
+        Start(label);
+        T result = work();
+        Stop(label);
+        return result;
+    }
+
     public void Start(string label) {
+        if (_spinnerTask != null) {
+            return;
+        }
+
         _label = label;
         _spinnerRow = Console.CursorTop;
         _cts = new CancellationTokenSource();
         Console.SetOut(_newOut);
-        Task.Run(() => { Spin(_cts.Token); });
+        _spinnerTask = Task.Run(() => { Spin(_cts.Token); });
     }
 
     public void Stop(string finalLabel, bool faulted = false) {
+        if (_spinnerTask == null) {
+            Console.WriteLine(finalLabel);
+            return;
+        }
+
         _cts.Cancel();
-        _spinnerTask?.Wait();
+        _spinnerTask.Wait();
         lock (_lock) {
+            _spinnerTask = null;
             Console.SetOut(_originalOut);
             Console.SetCursorPosition(0, _spinnerRow);
             var symbol = faulted ? _failureSymbol : _successSymbol;
