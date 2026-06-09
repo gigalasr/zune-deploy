@@ -1,6 +1,7 @@
+using System.Diagnostics;
 using System.Text;
 
-public class Spinner {
+public static class Spinner {
     private static bool ShouldUseAsciiFrames =
         Environment.OSVersion.Platform == PlatformID.Win32NT
                 && Console.OutputEncoding.CodePage != 1200 /* UTF-16 */
@@ -12,35 +13,36 @@ public class Spinner {
     private static readonly string _successSymbol = ShouldUseAsciiFrames ? "[OK]" : "✓";
     private static readonly string _failureSymbol = ShouldUseAsciiFrames ? "[FAIL]" : "🞬";
 
-    private object _lock = new();
-    private int _spinnerRow;
-    private int _frame = 0;
-    private int _lastLenght = 0;
-    private string _label;
+    private static object _lock = new();
+    private static int _spinnerRow = Console.CursorTop;
+    private static int _frame = 0;
+    private static int _lastLenght = 0;
+    private static string _label = "";
 
-    private TextWriter _originalOut;
-    private TextWriter _newOut;
+    private static TextWriter _originalOut = Console.Out;
+    private static TextWriter _newOut = new Writer(Console.Out.Encoding);
 
-    private Task? _spinnerTask = null;
-    private CancellationTokenSource _cts = new();
+    private static Task? _spinnerTask = null;
+    private static CancellationTokenSource _cts = new();
 
-
-    public Spinner() {
-        _label = "Loading...";
-        _spinnerRow = Console.CursorTop;
-        _originalOut = Console.Out;
-        _newOut = new Writer(Console.Out.Encoding, this);
+    public static void SpinFor(string label, Action work) {
+        Start(label);
+        work();
+        Trace.Assert(label.Contains("ing"));
+        Stop(label.Replace("ing", "ed"));
     }
 
-    public T SpinFor<T>(string label, string stopLabel, Func<T> work) {
+    public static T SpinFor<T>(string label, Func<T> work) {
         Start(label);
         T result = work();
-        Stop(label);
+        Trace.Assert(label.Contains("ing"));
+        Stop(label.Replace("ing", "ed"));
         return result;
     }
 
-    public void Start(string label) {
+    public static void Start(string label) {
         if (_spinnerTask != null) {
+            SetLabel(label);
             return;
         }
 
@@ -51,7 +53,7 @@ public class Spinner {
         _spinnerTask = Task.Run(() => { Spin(_cts.Token); });
     }
 
-    public void Stop(string finalLabel, bool faulted = false) {
+    public static void Stop(string finalLabel, bool faulted = false) {
         if (_spinnerTask == null) {
             Console.WriteLine(finalLabel);
             return;
@@ -68,14 +70,11 @@ public class Spinner {
         }
     }
 
-    public void SetLabel(string label) {
-        if (_cts.IsCancellationRequested) {
-            return;
-        }
+    public static void SetLabel(string label) {
         lock (_lock) { _label = label; }
     }
 
-    public void Log(string line) {
+    private static void Log(string line) {
         lock (_lock) {
             Console.SetCursorPosition(0, _spinnerRow);
             _originalOut.WriteLine($"{line.PadRight(_lastLenght)}");
@@ -84,47 +83,46 @@ public class Spinner {
         }
     }
 
-    private void Spin(CancellationToken token) {
+    private static void Spin(CancellationToken token) {
         while (!token.IsCancellationRequested) {
             lock (_lock) { DrawSpinner(); }
             Thread.Sleep(80);
         }
     }
 
-    private void DrawSpinner() {
+    private static void DrawSpinner() {
         Console.SetCursorPosition(0, _spinnerRow);
         var line = $"{_frames[_frame]} {_label}".PadRight(_lastLenght);
         _originalOut.Write(line);
         _lastLenght = line.Length;
         _frame = (_frame + 1) % _frames.Length;
     }
-}
 
-public class Writer : TextWriter {
-    public override Encoding Encoding => _encoding;
-    private readonly StringBuilder _buffer = new();
-    private readonly Encoding _encoding;
-    private readonly Spinner _spinner;
+    internal class Writer : TextWriter {
+        public override Encoding Encoding => _encoding;
+        private readonly StringBuilder _buffer = new();
+        private readonly Encoding _encoding;
 
-    public Writer(Encoding encoding, Spinner spinner) {
-        _encoding = encoding;
-        _spinner = spinner;
-    }
+        public Writer(Encoding encoding) {
+            _encoding = encoding;
+        }
 
-    public override void Write(char value) {
-        _buffer.Append(value);
-        if (value == '\n') {
+        public override void Write(char value) {
+            _buffer.Append(value);
+            if (value == '\n') {
+                Flush();
+            }
+        }
+
+        public override void WriteLine(string? line) {
+            if (line != null) { _buffer.Append(line); }
             Flush();
         }
-    }
 
-    public override void WriteLine(string? line) {
-        if (line != null) { _buffer.Append(line); }
-        Flush();
-    }
-
-    public override void Flush() {
-        _spinner.Log(_buffer.ToString());
-        _buffer.Clear();
+        public override void Flush() {
+            Log(_buffer.ToString());
+            _buffer.Clear();
+        }
     }
 }
+

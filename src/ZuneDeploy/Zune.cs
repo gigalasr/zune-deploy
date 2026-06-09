@@ -4,11 +4,13 @@ using ZuneDeploy.XNA.Protocol;
 
 namespace ZuneDeploy;
 
-public class Zune {
+public class Zune : IDisposable {
     private Client _client;
+    private bool _isConnected = false;
 
     public Zune() {
         _client = new Client();
+        _isConnected = true;
     }
 
     /// <summary>
@@ -54,5 +56,20 @@ public class Zune {
     /// <returns><<see cref="LaunchChannel"/>/returns>
     public LaunchChannel OpenXnaLaunchChannel() {
         return new LaunchChannel(_client);
+    }
+
+    /// <summary>
+    /// Disconnects from the zune.
+    /// </summary>
+    public void Close() {
+        if (_isConnected) {
+            _client.Close();
+            _isConnected = false;
+        }
+    }
+
+    public void Dispose() {
+        Close();
+        GC.SuppressFinalize(this);
     }
 }

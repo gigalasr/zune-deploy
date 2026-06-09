@@ -74,12 +74,12 @@ public record DeployConfiguration {
 
 public record ApplicationContainer : DeployConfiguration {
     public required ReadOnlyCollection<ContainerFile> Files { init; get; }
-    public required string? ThumbnailPath { init; get; }
+    public required ContainerFile? Thumbnail { init; get; }
 
     [SetsRequiredMembers]
-    private ApplicationContainer(ReadOnlyCollection<ContainerFile> _files, DeployConfiguration _config, string? thumbnail) : base(_config) {
+    private ApplicationContainer(DeployConfiguration _config, ReadOnlyCollection<ContainerFile> _files, ContainerFile? thumbnail) : base(_config) {
         Files = _files;
-        ThumbnailPath = thumbnail;
+        Thumbnail = thumbnail;
     }
 
     public static ApplicationContainer FromFolder(DirectoryInfo folder) {
@@ -98,12 +98,14 @@ public record ApplicationContainer : DeployConfiguration {
         }
 
         // Check if Thumbnail exists
-        string? thumbnailPath = null;
+        ContainerFile? thumbnail = null;
+
         if (config.ThumbnailFileName != null) {
-            thumbnailPath = Path.Join(folder.FullName, config.ThumbnailFileName);
+            string thumbnailPath = Path.Join(folder.FullName, config.ThumbnailFileName);
             if (!File.Exists(thumbnailPath)) {
                 throw new ContainerPathNotFoundException(thumbnailPath, "thumbnail");
             }
+            thumbnail = new ContainerFile(thumbnailPath, config.ThumbnailFileName);
         }
 
         // Check if entry point executable exists
@@ -121,7 +123,7 @@ public record ApplicationContainer : DeployConfiguration {
             .Select(f => new ContainerFile(f, NormalizeFilePath(f)))
             .ToList();
 
-        return new ApplicationContainer(files.AsReadOnly(), config, thumbnailPath);
+        return new ApplicationContainer(config, files.AsReadOnly(), thumbnail);
     }
 
     public override string ToString() {
