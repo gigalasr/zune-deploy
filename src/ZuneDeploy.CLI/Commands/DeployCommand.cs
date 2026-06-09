@@ -18,6 +18,10 @@ internal static class DeployVerb {
             using (Zune zune = Spinner.SpinFor("Connecting to Zune",
                 () => new Zune()
             )) {
+
+                // TODO: Make sure runtime container is available
+                // TODO: Deploy runtime, if not available 
+
                 Spinner.Start("Opening Deploy Channel");
                 using (GameDeployChannel deployChan = zune.OpenXNAGameDeployChannel()) {
                     Spinner.SpinFor("Opening App Container", () => {

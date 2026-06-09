@@ -30,16 +30,15 @@ class Program {
                 },
             };
             Command deployCommand = new("deploy", "Deploy an application to the Zune") {
-                launchOpt, pathArg
+                launchOpt, infoOpt, pathArg
             };
-            rootCommand.Subcommands.Add(deployCommand);
-
             deployCommand.SetAction((parsed) => {
                 bool launch = parsed.GetValue(launchOpt);
                 bool info = parsed.GetValue(infoOpt);
                 DirectoryInfo folder = parsed.GetValue(pathArg)!;
                 DeployVerb.DeployCommand(folder, launch, info);
             });
+            rootCommand.Subcommands.Add(deployCommand);
         }
 
         Console.CursorVisible = false;

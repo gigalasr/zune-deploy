@@ -50,7 +50,7 @@ public static class Spinner {
         _spinnerRow = Console.CursorTop;
         _cts = new CancellationTokenSource();
         Console.SetOut(_newOut);
-        _spinnerTask = Task.Run(() => { Spin(_cts.Token); });
+        _spinnerTask = Task.Run(async () => { await Spin(_cts.Token); });
     }
 
     public static void Stop(string finalLabel, bool faulted = false) {
@@ -83,10 +83,10 @@ public static class Spinner {
         }
     }
 
-    private static void Spin(CancellationToken token) {
+    private static async Task Spin(CancellationToken token) {
         while (!token.IsCancellationRequested) {
             lock (_lock) { DrawSpinner(); }
-            Thread.Sleep(80);
+            await Task.Delay(80, token).ContinueWith(_ => { });
         }
     }
 
