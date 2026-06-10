@@ -1,15 +1,8 @@
-using System;
-
 namespace ZuneDeploy.Transport;
 
-internal class Message {
-    public readonly byte StreamId;
-    public readonly MemoryStream Data;
-
-    public Message(byte streamId, byte[] buffer) {
-        StreamId = streamId;
-        Data = new MemoryStream(buffer);
-    }
+internal class Message(byte streamId, byte[] buffer) {
+    public readonly byte StreamId = streamId;
+    public readonly MemoryStream Data = new(buffer);
 
     /// <summary>
     /// The remaining length of the message, including its header (1 byte streamId, 2 bytes length)

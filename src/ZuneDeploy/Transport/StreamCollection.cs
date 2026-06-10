@@ -7,8 +7,8 @@ internal record StreamInformation {
 }
 
 internal class StreamCollection() {
-    private Dictionary<byte, StreamInformation> _streams = new();
-    private Queue<byte> _freeStreamIds = new();
+    private readonly Dictionary<byte, StreamInformation> _streams = [];
+    private readonly Queue<byte> _freeStreamIds = [];
 
     // streamid=0 is reserved for commands
     private byte _nextStreamId = 1;
@@ -25,7 +25,7 @@ internal class StreamCollection() {
     public ServiceStream CreateStream(ServiceStream.CloseStream? closeStreamCallback) {
         byte streamId = GetNextStreamId();
 
-        ServiceStream stream = new ServiceStream(streamId, closeStreamCallback);
+        var stream = new ServiceStream(streamId, closeStreamCallback);
         _streams.Add(streamId, new StreamInformation {
             Stream = stream,
             HostBufferSize = 0,
@@ -36,12 +36,12 @@ internal class StreamCollection() {
     }
 
     /// <summary>
-    /// Either the Zune or we can initate to close a stream.
+    /// Either the Zune or we can initiate to close a stream.
     /// As such, we first go into the closing state and then into the closed state.
-    /// The second time close is called, we know that both parties requested to close the stream and we can close it for real. 
+    /// The second time close is called, we know that both parties requested to close the stream and we can close it for real.
     /// </summary>
     /// <remarks>
-    /// As such, this method has to be called twice, once by us, once "by the zune". 
+    /// As such, this method has to be called twice, once by us, once "by the Zune".
     /// </remarks>
     /// <param name="streamId">The stream to close</param>
     /// <returns>True, if the stream entered the <see cref="ServiceStreamState.Closed"/> state</returns>
@@ -69,8 +69,8 @@ internal class StreamCollection() {
 
     /// <summary>
     /// Should be called, when the Zune sends a <see cref="StreamOpenedCommand"/>.
-    /// This will set the stream into the <see cref="ServiceStreamState.Open"/> and configure the 
-    /// inital buffer size of the service on the Zune. 
+    /// This will set the stream into the <see cref="ServiceStreamState.Open"/> and configure the
+    /// initial buffer size of the service on the Zune.
     /// </summary>
     /// <param name="streamId">Stream that was opened</param>
     /// <param name="initalBufferSize">The buffer size that was transmitted in the <see cref="StreamOpenedCommand"/></param>
@@ -124,8 +124,8 @@ internal class StreamCollection() {
     }
 
     /// <summary>
-    /// Get the buffer capacity for a stream. 
-    /// This is the capacity remaning on the Zune for a given stream 
+    /// Get the buffer capacity for a stream.
+    /// This is the capacity remaining on the Zune for a given stream
     /// </summary>
     /// <param name="streamId">The stream the buffer belongs to</param>
     /// <returns>Remaining capacity in bytes</returns>
@@ -138,11 +138,11 @@ internal class StreamCollection() {
     /// </summary>
     /// <remarks>
     /// This method is called by the <see cref="PacketWriter.GeneratePacket"/> method
-    /// when writing messages to a stream. 
+    /// when writing messages to a stream.
     /// </remarks>
     /// <param name="streamId">The stream that data was written to</param>
     /// <param name="delta">Size of the written data in bytes</param>
-    /// <exception cref="ArgumentException">Thrown when delta is bigger than the remaning capacity</exception>
+    /// <exception cref="ArgumentException">Thrown when delta is bigger than the remaining capacity</exception>
     public void DecrementBufferCapacityForStream(byte streamId, ushort delta) {
         var info = _streams[streamId];
         if (delta > info.HostBufferSize) {

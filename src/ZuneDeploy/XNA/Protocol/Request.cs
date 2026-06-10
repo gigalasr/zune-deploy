@@ -16,7 +16,7 @@ internal static class Request {
             throw new ArgumentException($"Invalid number of arguments for '{proc.Name}'", "args");
         }
 
-        BinaryWriter writer = new BinaryWriter(stream, Encoding.Unicode);
+        var writer = new BinaryWriter(stream, Encoding.Unicode);
 
         // Header
         writer.Write(Message.HeaderMagicValue);
@@ -27,11 +27,7 @@ internal static class Request {
         // Args
         for (int i = 0; i < args.Length; i++) {
             var definition = proc.Parameters[i];
-            var value = args[i];
-
-            if (value == null) {
-                throw new ArgumentException($"Argument '{definition.Name}' at idx={i} cannot be null", "args");
-            }
+            var value = args[i] ?? throw new ArgumentException($"Argument '{definition.Name}' at idx={i} cannot be null", "args");
 
             // The original driver sends 0 instead of 1 for boolean, probably a mistake but works out because of the size
             // We'll send a 1 for now, as that should be the correct value
@@ -81,7 +77,7 @@ internal static class Request {
                     break;
                 case ParameterType.Stream:
                     ExpectType<Stream>(value);
-                    // TODO: Check if we really need to to i + 1
+                    // TODO: Check if we really need to add i + 1
                     writer.Write((byte)(i + 1));
                     writer.Write((int)((Stream)value).Length);
                     break;
@@ -97,7 +93,7 @@ internal static class Request {
             throw new Exception("Parameter Streams can not be longer than 2 GB");
         }
 
-        BinaryWriter bw = new BinaryWriter(target);
+        var bw = new BinaryWriter(target);
 
         // The Zune will choke with chunks > 128 KiB
         int len = (int)Math.Min(source.Length, MAX_CHUNK_BYTES);
@@ -109,7 +105,7 @@ internal static class Request {
                 throw new Exception("Unexpected end of stream reached");
             }
 
-            // If we ever wanted to cancel the transfer, we can send a message only containg TRUE to stop 
+            // If we ever wanted to cancel the transfer, we can send a message only containing TRUE to stop
             bw.Write(false);
             bw.Write(read);
             bw.Write(buffer, 0, read);

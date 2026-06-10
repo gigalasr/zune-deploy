@@ -5,7 +5,7 @@ using ZuneDeploy.XNA.Protocol;
 namespace ZuneDeploy;
 
 public class Zune : IDisposable {
-    private Client _client;
+    private readonly Client _client;
     private bool _isConnected = false;
 
     public Zune() {
@@ -42,7 +42,7 @@ public class Zune : IDisposable {
 
     /// <summary>
     /// Opens a new <see cref="Channel"/> to the remote XNA Runtime Deploy Service.
-    /// Use this to deploy xna / .net runtimes to a container. 
+    /// Use this to deploy xna / .net runtimes to a container.
     /// </summary>
     /// <returns><<see cref="RuntimeDeployChannel"/>/returns>
     public RuntimeDeployChannel OpenXNARuntimeDeployChannel() {
@@ -51,7 +51,7 @@ public class Zune : IDisposable {
 
     /// <summary>
     /// Opens a new <see cref="Channel"/> to the remote XNA Launch Service.
-    /// Use this to launch a title / game / app. 
+    /// Use this to launch a title / game / app.
     /// </summary>
     /// <returns><<see cref="LaunchChannel"/>/returns>
     public LaunchChannel OpenXnaLaunchChannel() {
@@ -59,7 +59,7 @@ public class Zune : IDisposable {
     }
 
     /// <summary>
-    /// Disconnects from the zune.
+    /// Disconnects from the Zune.
     /// </summary>
     public void Close() {
         if (_isConnected) {

@@ -22,6 +22,8 @@ Main:
     - Zune4 -> ZuneHD
     - Zune -> Other Zunes
 - [ ] Cleanly close connection
+- [ ] Tracing 
+- [ ] Verbose HexDumps
 
 Meta:
 - [ ] GitHub CI for tests

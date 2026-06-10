@@ -2,7 +2,7 @@ using System.Diagnostics;
 using System.Text;
 
 public static class Spinner {
-    private static bool ShouldUseAsciiFrames =
+    private static readonly bool ShouldUseAsciiFrames =
         Environment.OSVersion.Platform == PlatformID.Win32NT
                 && Console.OutputEncoding.CodePage != 1200 /* UTF-16 */
                 && Console.OutputEncoding.CodePage != 65001 /* UTF-8 */;
@@ -13,14 +13,14 @@ public static class Spinner {
     private static readonly string _successSymbol = ShouldUseAsciiFrames ? "[OK]" : "✓";
     private static readonly string _failureSymbol = ShouldUseAsciiFrames ? "[FAIL]" : "🞬";
 
-    private static object _lock = new();
+    private static readonly object _lock = new();
     private static int _spinnerRow = Console.CursorTop;
     private static int _frame = 0;
     private static int _lastLenght = 0;
     private static string _label = "";
 
-    private static TextWriter _originalOut = Console.Out;
-    private static TextWriter _newOut = new Writer(Console.Out.Encoding);
+    private static readonly TextWriter _originalOut = Console.Out;
+    private static readonly TextWriter _newOut = new Writer(Console.Out.Encoding);
 
     private static Task? _spinnerTask = null;
     private static CancellationTokenSource _cts = new();
@@ -98,14 +98,10 @@ public static class Spinner {
         _frame = (_frame + 1) % _frames.Length;
     }
 
-    internal class Writer : TextWriter {
+    internal class Writer(Encoding encoding) : TextWriter {
         public override Encoding Encoding => _encoding;
         private readonly StringBuilder _buffer = new();
-        private readonly Encoding _encoding;
-
-        public Writer(Encoding encoding) {
-            _encoding = encoding;
-        }
+        private readonly Encoding _encoding = encoding;
 
         public override void Write(char value) {
             _buffer.Append(value);
@@ -125,4 +121,3 @@ public static class Spinner {
         }
     }
 }
-

@@ -1,10 +1,9 @@
-using System.Collections.ObjectModel;
 using System.Text;
 
 namespace ZuneDeploy.XNA.Protocol;
 
 internal class Schema {
-    private Dictionary<string, RemoteProcedure> _procedures = new();
+    private readonly Dictionary<string, RemoteProcedure> _procedures = [];
 
     private Schema(List<RemoteProcedure> procs) {
         procs.ForEach(p => _procedures.Add(p.Name, p));
@@ -31,10 +30,10 @@ internal class Schema {
     }
 
     public static Schema ReadFromStream(Stream stream) {
-        BinaryReader reader = new BinaryReader(stream, Encoding.Unicode);
+        var reader = new BinaryReader(stream, Encoding.Unicode);
         Message.ValidateHeaderAndType(reader, MessageType.Schema);
 
-        List<RemoteProcedure> procedures = new();
+        List<RemoteProcedure> procedures = [];
 
         byte procCount = reader.ReadByte();
         for (int i = 0; i < procCount; i++) {

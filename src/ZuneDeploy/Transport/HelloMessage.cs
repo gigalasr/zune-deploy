@@ -3,7 +3,7 @@ using System.Text;
 namespace ZuneDeploy.Transport;
 
 /**
- * The first message that the host sends the Zune after the first message from the zune is recieved
+ * The first message that the host sends the Zune after the first message from the Zune is received
  *
  * Payload Structure
  * 0  -   3: 0 Padding

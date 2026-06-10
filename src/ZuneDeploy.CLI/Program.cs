@@ -1,10 +1,5 @@
 ﻿using System.CommandLine;
-using System.CommandLine.Parsing;
-using NativeGen;
-using ZuneDeploy.CLI.Verbs;
-using ZuneDeploy.Transport;
-using ZuneDeploy.XNA.Channels;
-using ZuneDeploy.XNA.Data;
+using ZuneDeploy.CLI.Commands;
 
 namespace ZuneDeploy.CLI;
 

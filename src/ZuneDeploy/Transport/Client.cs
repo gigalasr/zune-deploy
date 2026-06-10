@@ -1,7 +1,6 @@
-
-
 using System.Collections.Concurrent;
 using NativeGen;
+using ZuneDeploy.Util;
 
 namespace ZuneDeploy.Transport;
 
@@ -11,14 +10,14 @@ namespace ZuneDeploy.Transport;
 /// </summary>
 public class Client {
     private IntPtr _deviceHandle;
-    private Thread _connectionThread;
+    private readonly Thread _connectionThread;
     private volatile bool _conThreadRunning = true;
-    private StreamCollection _streamCollection;
-    private PacketReader _packetReader;
-    private PacketWriter _packetWriter;
+    private readonly StreamCollection _streamCollection;
+    private readonly PacketReader _packetReader;
+    private readonly PacketWriter _packetWriter;
 
-    private BlockingCollection<IWorkItem> _requests = new();
-    private Dictionary<byte, IWorkItem> _pendingRequests = new();
+    private readonly BlockingCollection<IWorkItem> _requests = [];
+    private readonly Dictionary<byte, IWorkItem> _pendingRequests = [];
 
     public void Close() {
         // TODO: Implement the actual closing commands i.e. CommandType.Disconnect
@@ -47,16 +46,18 @@ public class Client {
     public async Task<ServiceStream> ConnectToServiceAsync(string serviceId) {
         var request = new OpenStreamRequest { ServiceId = serviceId };
         _requests.Add(request);
-        // TODO: Implement canceling the request on timeout? 
+        // TODO: Implement canceling the request on timeout?
         return await request.Response.Task;
     }
 
     /// <summary>
     /// Close a stream.
-    /// 
-    /// The zune will block any other open requsts to the same id
-    /// until we also send a close command to the zune. 
     /// </summary>
+    ///<remarks>
+    /// The Zune will block any other open requests to the same id
+    /// until we also send a close command to the Zune. The stream is
+    /// only closed if both parties send a <see cref="CommandType.CloseStream">
+    /// </remarks>
     /// <param name="streamId">The id of a stream to close</param>
     public void CloseStream(byte streamId) {
         _requests.Add(new CloseStreamRequest { StreamId = streamId });
@@ -75,6 +76,7 @@ public class Client {
         _packetReader.OnHostRebooting += OnHostRebooting;
         _packetReader.OnKeepAlive += OnKeepAlive;
         _packetReader.OnDataProcessed += OnDataProcessed;
+        _packetReader.OnClientError += OnClientError;
 
         var open = new OpenConnectionRequest();
         _requests.Add(open);
@@ -87,7 +89,7 @@ public class Client {
 
     /// <summary>
     /// The <see cref="StreamClosedCommand"/> is sent by the Zune when it wants to close a stream
-    /// or as an acknowledgement that a stream was closed when we requested to close it. 
+    /// or as an acknowledgment that a stream was closed when we requested to close it.
     /// </summary>
     private void OnStreamClosed(object? sender, StreamClosedCommand info) {
         //Console.WriteLine($"StreamClosed id={info.StreamId}");
@@ -95,9 +97,9 @@ public class Client {
     }
 
     /// <summary>
-    /// The <see cref="StreamOpenedCommand"/> is sent by the Zune in response to a <see cref="OpenStreamCommand"/> 
-    /// in order to acknowledge that a stream was sucessfully opened. 
-    /// 
+    /// The <see cref="StreamOpenedCommand"/> is sent by the Zune in response to a <see cref="OpenStreamCommand"/>
+    /// in order to acknowledge that a stream was successfully opened.
+    ///
     /// We have to acknowledge the open with a <see cref="AckOpenCommand"/>.
     /// </summary>
     private void OnStreamOpened(object? sender, StreamOpenedCommand info) {
@@ -106,8 +108,8 @@ public class Client {
         _packetWriter.SendCommand(new AckOpenCommand(info.StreamId));
 
         var reqeust = _pendingRequests[info.StreamId];
-        if (reqeust is OpenStreamRequest && reqeust != null) {
-            ((OpenStreamRequest)reqeust).Response.SetResult(_streamCollection.GetStream(info.StreamId));
+        if (reqeust is OpenStreamRequest request && reqeust != null) {
+            request.Response.SetResult(_streamCollection.GetStream(info.StreamId));
             _pendingRequests.Remove(info.StreamId);
         }
     }
@@ -119,8 +121,8 @@ public class Client {
         //Console.WriteLine($"RequestRefused id={info.StreamId}");
         // TODO: Close actual stream as well
         var reqeust = _pendingRequests[info.StreamId];
-        if (reqeust is OpenStreamRequest && reqeust != null) {
-            ((OpenStreamRequest)reqeust).Response.SetException(new Exception($"Failed to open stream id={info.StreamId}"));
+        if (reqeust is OpenStreamRequest request && reqeust != null) {
+            request.Response.SetException(new Exception($"Failed to open stream id={info.StreamId}"));
             _pendingRequests.Remove(info.StreamId);
         }
     }
@@ -145,6 +147,11 @@ public class Client {
         //Console.WriteLine($"DataProcessed id={info.StreamId} consumed={info.BytesConsumed}");
         _streamCollection.OnDataProcessed(info.StreamId, info.BytesConsumed);
     }
+
+    private void OnClientError(object? sender, ClientErrorCommand err) {
+        throw new Exception("Client Error");
+    }
+
 
     private bool SendRaw(byte[] data) {
         int sendResult = MTP.SendData(_deviceHandle, data, data.Length);
@@ -245,9 +252,9 @@ public class Client {
                 _packetReader.ParseAndDispatch(incomingPacket);
             } else {
                 // The original driver waits 50ms when the Zune has nothing to send.
-                // It might be better to switch to two seperate therads for sending and recieving.
-                // However, the zune does not like it if we send data too quick, so we have to throtle it anyways.
-                // TODO: On MTP Error Code 0xa22a, increase the timeout to give the zune some time to crunch the data.
+                // It might be better to switch to two separate threads for sending and receiving.
+                // However, the Zune does not like it if we send data too quick, so we have to throttle it anyways.
+                // TODO: On MTP Error Code 0xa22a, increase the timeout to give the Zune some time to crunch the data.
                 Thread.Sleep(1);
             }
         }

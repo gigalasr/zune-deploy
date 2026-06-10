@@ -5,7 +5,7 @@ using ZuneDeploy.XNA.Protocol;
 namespace ZuneDeploy.XNA.Channels;
 
 public class GameDeployChannel(Client client) : Channel(client, _channelGuid) {
-    private static readonly Guid _channelGuid = new Guid("AA3C2881-4EB9-4af6-8137-635C2E64CE4A");
+    private static readonly Guid _channelGuid = new("AA3C2881-4EB9-4af6-8137-635C2E64CE4A");
 
     public bool OpenContainer(ApplicationContainer container) {
         return OpenGameContainer(container.ContainerId, container.DisplayName);
@@ -16,10 +16,10 @@ public class GameDeployChannel(Client client) : Channel(client, _channelGuid) {
     /// </summary>
     /// <param name="containerId">Id of container to open</param>
     /// <param name="titleName">Name of the container. Will be capped to 127 characters</param>
-    /// <returns>True if the contaienr was already open</returns>
+    /// <returns>True if the container was already open</returns>
     public bool OpenGameContainer(Guid containerId, string titleName) {
         if (titleName.Length > 127) {
-            titleName = titleName.Substring(0, 127);
+            titleName = titleName[..127];
         }
         return Invoke<bool>("OpenGameContainer", containerId, titleName);
     }
@@ -33,7 +33,7 @@ public class GameDeployChannel(Client client) : Channel(client, _channelGuid) {
     /// <returns>Opened Container Cookie</returns>
     public long OpenSpecificGameContainer(Guid containerId, string titleName, long requestedContainerCookie) {
         if (titleName.Length > 127) {
-            titleName = titleName.Substring(0, 127);
+            titleName = titleName[..127];
         }
         return Invoke<long>("OpenSpecificGameContainer", containerId, titleName, requestedContainerCookie);
     }
@@ -97,7 +97,7 @@ public class GameDeployChannel(Client client) : Channel(client, _channelGuid) {
     /// Sets the Thumbnail for the currently open container
     /// </summary>
     /// <param name="thumbnailContent">Thumbnail to upload</param>
-    /// <exception cref="Exception">Thrown if Thubnaul is bigger than 16.384 bytes</exception>
+    /// <exception cref="Exception">Thrown if Thumbnail is bigger than 16.384 bytes</exception>
     public void PutThumbnailInContainer(Stream thumbnailContent) {
         if (thumbnailContent.Length > 16384) {
             throw new Exception("Thubnail too big");

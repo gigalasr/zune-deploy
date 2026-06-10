@@ -3,6 +3,7 @@ using System.Data.SqlTypes;
 using System.Reflection.Metadata;
 using System.Security.Cryptography;
 using ZuneDeploy.Transport;
+using ZuneDeploy.Util;
 
 namespace ZuneDeploy.Tests;
 
@@ -35,7 +36,7 @@ public class PacketWriterTests {
     public void SingleCommand() {
         var expectedPacket = TestUtil.FillPacket([
             // Sequence Id
-            0x0, 0x0,  0x0, 0x0,  
+            0x0, 0x0,  0x0, 0x0,
             // OpenStreamCommand
             0x0, 0x0, 0x23, 0xa1, 0x1, 0x10, 0x0, 0x58,
             0x0, 0x6e, 0x0, 0x61, 0x0, 0x43, 0x0, 0x68,
@@ -66,15 +67,15 @@ public class PacketWriterTests {
     public void MutlipleCommands() {
         var expectedPacket = TestUtil.FillPacket([
             // Sequence Id
-            0x0, 0x0,  0x0, 0x0, 
+            0x0, 0x0,  0x0, 0x0,
             // OpenStreamCommand
             0x0, 0x0, 0x23, 0xa1, 0x1, 0x10, 0x0, 0x58,
             0x0, 0x6e, 0x0, 0x61, 0x0, 0x43, 0x0, 0x68,
             0x0, 0x61, 0x0, 0x6e, 0x0, 0x6e, 0x0, 0x65,
             0x0, 0x6c, 0x0, 0x42, 0x0, 0x72, 0x0, 0x6f,
-            0x0, 0x6b, 0x0, 0x65, 0x0, 0x72, 
+            0x0, 0x6b, 0x0, 0x65, 0x0, 0x72,
             // AckOpenCommand
-            0x0, 0x0,  0x2, 0xa4, 0x1, 
+            0x0, 0x0,  0x2, 0xa4, 0x1,
             // CloseStreamCommand
             0x0, 0x0,  0x2, 0xc1, 0x1,
 
@@ -109,8 +110,8 @@ public class PacketWriterTests {
         byte[] message = [0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa];
         var expectedPacket = TestUtil.FillPacket([
             // Sequence Id
-            0x0, 0x0,  0x0, 0x0, 
-            // Message [stream][lenhi][lenlow] 
+            0x0, 0x0,  0x0, 0x0,
+            // Message [stream][lenhi][lenlow]
             stream.StreamId, (byte)(message.Length >> 8), (byte)(message.Length),
             // Message Contents
             ..message
@@ -149,8 +150,8 @@ public class PacketWriterTests {
 
         var expectedPacket1 = TestUtil.FillPacket([
             // Sequence Id
-            0x0, 0x0,  0x0, 0x0, 
-            // Message [stream][lenhi][lenlow] 
+            0x0, 0x0,  0x0, 0x0,
+            // Message [stream][lenhi][lenlow]
             stream.StreamId, (byte)(messagePart1.Length >> 8), (byte)messagePart1.Length,
             // Message Contents
             ..messagePart1
@@ -158,8 +159,8 @@ public class PacketWriterTests {
 
         var expectedPacket2 = TestUtil.FillPacket([
             // Sequence Id
-            0x0, 0x0,  0x0, 0x1, 
-            // Message [stream][lenhi][lenlow] 
+            0x0, 0x0,  0x0, 0x1,
+            // Message [stream][lenhi][lenlow]
             stream.StreamId, (byte)(messagePart2.Length >> 8), (byte)messagePart2.Length,
             // Message Contents
             ..messagePart2
@@ -232,12 +233,12 @@ public class PacketWriterTests {
 
         var expectedPacket = TestUtil.FillPacket([
             // Sequence Id
-            0x0, 0x0,  0x0, 0x0, 
-            // Message A [stream][lenhi][lenlow] 
+            0x0, 0x0,  0x0, 0x0,
+            // Message A [stream][lenhi][lenlow]
             streamA.StreamId, (byte)(messageA.Length >> 8), (byte)(messageA.Length),
             // Message A Contents
             ..messageA,
-            // Message B [stream][lenhi][lenlow] 
+            // Message B [stream][lenhi][lenlow]
             streamB.StreamId, (byte)(messageB.Length >> 8), (byte)(messageB.Length),
             // Message B Contents
             ..messageB
@@ -277,16 +278,16 @@ public class PacketWriterTests {
 
         var expectedPacket = TestUtil.FillPacket([
             // Sequence Id
-            0x0, 0x0,  0x0, 0x0, 
+            0x0, 0x0,  0x0, 0x0,
             // AckOpenCommand
-            0x0, 0x0,  0x2, 0xa4, 0x1, 
+            0x0, 0x0,  0x2, 0xa4, 0x1,
             // Close Stream Command
             0x0, 0x0,  0x2, 0xc1, 0x1,
-            // Message A [stream][lenhi][lenlow] 
+            // Message A [stream][lenhi][lenlow]
             streamA.StreamId, (byte)(messageA.Length >> 8), (byte)(messageA.Length),
             // Message A Contents
             ..messageA,
-            // Message B [stream][lenhi][lenlow] 
+            // Message B [stream][lenhi][lenlow]
             streamB.StreamId, (byte)(messageB.Length >> 8), (byte)(messageB.Length),
             // Message B Contents
             ..messageB

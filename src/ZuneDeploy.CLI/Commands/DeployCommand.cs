@@ -1,8 +1,7 @@
-using System.ComponentModel;
 using ZuneDeploy.XNA.Channels;
 using ZuneDeploy.XNA.Data;
 
-namespace ZuneDeploy.CLI.Verbs;
+namespace ZuneDeploy.CLI.Commands;
 
 internal static class DeployVerb {
     public static void DeployCommand(DirectoryInfo folder, bool launch, bool printContainerInfo) {
@@ -15,34 +14,33 @@ internal static class DeployVerb {
                 Console.Write(container.ToString());
             }
 
-            using (Zune zune = Spinner.SpinFor("Connecting to Zune",
+            using Zune zune = Spinner.SpinFor("Connecting to Zune",
                 () => new Zune()
-            )) {
+            );
 
-                // TODO: Make sure runtime container is available
-                // TODO: Deploy runtime, if not available 
+            // TODO: Make sure runtime container is available
+            // TODO: Deploy runtime, if not available
 
-                Spinner.Start("Opening Deploy Channel");
-                using (GameDeployChannel deployChan = zune.OpenXNAGameDeployChannel()) {
-                    Spinner.SpinFor("Opening App Container", () => {
-                        deployChan.OpenContainer(container);
-                    });
+            Spinner.Start("Opening Deploy Channel");
+            using (GameDeployChannel deployChan = zune.OpenXNAGameDeployChannel()) {
+                Spinner.SpinFor("Opening App Container", () => {
+                    deployChan.OpenContainer(container);
+                });
 
-                    foreach (var file in container.Files) {
-                        DeployFile(deployChan, file);
-                    }
-
-                    if (container.Thumbnail != null) {
-                        DeployFile(deployChan, container.Thumbnail);
-                    }
-
-                    Spinner.SpinFor("Uploading Container Metadata", () => deployChan.PutGamePropertiesEx(container));
-                    Spinner.SpinFor("Closing Game Container", deployChan.CloseGameContainer);
+                foreach (var file in container.Files) {
+                    DeployFile(deployChan, file);
                 }
 
-                if (launch) {
-                    LaunchApplication(zune, container);
+                if (container.Thumbnail != null) {
+                    DeployFile(deployChan, container.Thumbnail);
                 }
+
+                Spinner.SpinFor("Uploading Container Metadata", () => deployChan.PutGamePropertiesEx(container));
+                Spinner.SpinFor("Closing Game Container", deployChan.CloseGameContainer);
+            }
+
+            if (launch) {
+                LaunchApplication(zune, container);
             }
         } catch (ContainerImportException e) {
             Spinner.Stop($"Failed to import game container: {e.Message}");
@@ -56,23 +54,22 @@ internal static class DeployVerb {
         long maxBytes = 0;
         long totalBytes = 0;
         string currentFilePath = "n/a";
-        EventHandler<ushort> SpinnerUpdate = (_, bytes) => {
+        void SpinnerUpdate(object? _, ushort bytes) {
             totalBytes += bytes;
             int progress = (int)(totalBytes / (double)maxBytes * 100);
             Spinner.SetLabel($"Deploying {currentFilePath} ({progress}%)");
-        };
+        }
 
         channel.OnBytesWritten += SpinnerUpdate;
         try {
-            using (var fs = file.Open()) {
-                currentFilePath = file.PathInContainer;
-                maxBytes = fs.Length;
-                totalBytes = 0;
-                if (isThumbnail) {
-                    channel.PutThumbnailInContainer(fs);
-                } else {
-                    channel.PutFileInContainer(file.PathInContainer, fs);
-                }
+            using var fs = file.Open();
+            currentFilePath = file.PathInContainer;
+            maxBytes = fs.Length;
+            totalBytes = 0;
+            if (isThumbnail) {
+                channel.PutThumbnailInContainer(fs);
+            } else {
+                channel.PutFileInContainer(file.PathInContainer, fs);
             }
         } catch (Exception e) {
             Spinner.Stop($"File Deploy Failed: {e.Message}", true);
@@ -85,10 +82,9 @@ internal static class DeployVerb {
 
     public static void LaunchApplication(Zune zune, ApplicationContainer container) {
         Spinner.SpinFor("Launching Application", () => {
-            using (LaunchChannel launchChan = zune.OpenXnaLaunchChannel()) {
-                launchChan.LaunchInMode(container.ContainerId, "", true);
-                Spinner.SetLabel("Running");
-            }
+            using LaunchChannel launchChan = zune.OpenXnaLaunchChannel();
+            launchChan.LaunchInMode(container.ContainerId, "", true);
+            Spinner.SetLabel("Running");
         });
     }
 }

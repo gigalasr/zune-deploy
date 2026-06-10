@@ -1,30 +1,28 @@
-
 using System.Collections.Concurrent;
 
 namespace ZuneDeploy.Transport;
 
 /// <summary>
-/// Stream to send and recieve bytes from a service over a packet stream 
+/// Stream to send and receive bytes from a service over a packet stream
 /// </summary>
 public class ServiceStream : Stream {
     public override bool CanRead => true;
     public override bool CanWrite => true;
     public override bool CanSeek => false;
 
-    private bool _disposed = false;
-
-    private BlockingCollection<Message> _incomingPackets = new();
-    private BlockingCollection<Message> _outgoingPackets = new();
-
-    private Queue<MemoryStream> _readQueue = new();
-    private MemoryStream _writeBuffer = new();
-
     public byte StreamId { init; get; }
+    public event EventHandler<ushort>? OnBytesWritten;
+
+    private readonly BlockingCollection<Message> _incomingPackets = [];
+    private readonly BlockingCollection<Message> _outgoingPackets = [];
+
+    private readonly Queue<MemoryStream> _readQueue = [];
+    private readonly MemoryStream _writeBuffer = new();
 
     internal delegate void CloseStream(byte streamId);
     private readonly CloseStream? _closeStream;
 
-    public event EventHandler<ushort>? OnBytesWritten;
+    private bool _disposed = false;
 
     /// <summary>
     /// Please request a ServiceStream via <see cref="Client.ConnectToService"/>
@@ -43,7 +41,7 @@ public class ServiceStream : Stream {
             }
         }
 
-        // If we still don't have any data, block to avoid the BinaryReader calling the Read function repeatedly 
+        // If we still don't have any data, block to avoid the BinaryReader calling the Read function repeatedly
         if (_readQueue.Count == 0) {
             _readQueue.Enqueue(_incomingPackets.Take().Data);
         }
@@ -87,7 +85,7 @@ public class ServiceStream : Stream {
     }
 
     /// <summary>
-    /// Cleanup stream resources
+    /// Clean up the stream resources
     /// </summary>
     /// <param name="disposing">true if called from Dispose(), false if called from finalizer</param>
     protected override void Dispose(Boolean disposing) {

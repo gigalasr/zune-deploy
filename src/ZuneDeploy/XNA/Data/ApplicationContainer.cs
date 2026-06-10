@@ -21,7 +21,7 @@ public record DeployConfiguration {
         return FromDeployKitConfiguration(File.ReadAllLines(path));
     }
     public static DeployConfiguration FromDeployKitConfiguration(string[] lines) {
-        Dictionary<string, string> config = new();
+        Dictionary<string, string> config = [];
 
         int lineNumber = 0;
         foreach (string rawLine in lines) {

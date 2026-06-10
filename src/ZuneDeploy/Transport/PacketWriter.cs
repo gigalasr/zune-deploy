@@ -1,23 +1,16 @@
 using System.Buffers.Binary;
-using System.Collections.Concurrent;
 using System.Security.Cryptography;
-using System.Text;
 
 namespace ZuneDeploy.Transport;
 
 
-internal class PacketWriter {
-    private StreamCollection _streamCollection;
+internal class PacketWriter(StreamCollection collection) {
+    private readonly StreamCollection _streamCollection = collection;
 
-    private Queue<SendableCommand> _pendingCommands = new();
-    private List<Message> _pendingMessages = new();
-
+    private readonly Queue<SendableCommand> _pendingCommands = [];
+    private readonly List<Message> _pendingMessages = [];
 
     private uint _sequenceId = 0;
-
-    public PacketWriter(StreamCollection collection) {
-        _streamCollection = collection;
-    }
 
     public void SendCommand(SendableCommand command) {
         _pendingCommands.Enqueue(command);
@@ -46,7 +39,7 @@ internal class PacketWriter {
 
         packet = GeneratePacket();
 
-        // Remove messages that have been completley written to the stream
+        // Remove messages that have been completely written to the stream
         _pendingMessages.RemoveAll(m => m.Data.Position >= m.Data.Length);
 
         return true;
@@ -55,17 +48,17 @@ internal class PacketWriter {
     private byte[] GeneratePacket() {
         /**
          * A Packet contains a list of Commands and Messages.
-         * Commands are listed first and followed by Messages. 
-         * 
+         * Commands are listed first and followed by Messages.
+         *
          * Structure:
          * 0000 - 0003: Sequence Id
          * 0004 - 1239: Command/Message/Terminator
-         * 1240 - 1243: Random Bytes 
+         * 1240 - 1243: Random Bytes
          * 1244 - 1263: SHA1 Hash
          *
          * Message
          * [streamId][len_hi][len_low][payload]
-         * 
+         *
          * Command (len includes type and args)
          * [0][len_hi][len_low][type][args]
          *
@@ -104,7 +97,7 @@ internal class PacketWriter {
 
         // Write Messages
         foreach (Message message in _pendingMessages) {
-            // We need space for the header and at least 4 bytes 
+            // We need space for the header and at least 4 bytes
             int remaining = payload.Length - position;
             if (remaining < Message.HeaderLength + Message.MinBlockSize) {
                 break;
@@ -118,7 +111,7 @@ internal class PacketWriter {
             }
 
             // Because of the condition above we know that there is at least space
-            // for the header and 4 bytes of the message in the packet  
+            // for the header and 4 bytes of the message in the packet
             int available = Math.Min(
                 Math.Min(hostBufferSize, message.RemainingLength) + Message.HeaderLength,
                 remaining

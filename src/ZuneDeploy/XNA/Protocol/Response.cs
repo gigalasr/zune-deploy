@@ -20,7 +20,7 @@ internal class Response {
     }
 
     public static Response ReadFromStream(ServiceStream stream) {
-        BinaryReader reader = new BinaryReader(stream, Encoding.Unicode);
+        var reader = new BinaryReader(stream, Encoding.Unicode);
         Message.ValidateHeaderAndType(reader, MessageType.Response);
 
         bool isError = reader.ReadBoolean();
@@ -65,6 +65,8 @@ internal class Response {
             case ParameterType.Guid:
                 value = new Guid(reader.ReadBytes(16));
                 break;
+            case ParameterType.Stream:
+                throw new InvalidDataException("Stream cannot be parsed as a response");
             default:
                 throw new InvalidDataException($"Invalid Parameter Type: {type}");
         }

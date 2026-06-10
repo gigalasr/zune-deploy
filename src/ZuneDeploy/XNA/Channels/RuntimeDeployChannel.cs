@@ -4,15 +4,15 @@ using ZuneDeploy.XNA.Protocol;
 namespace ZuneDeploy.XNA.Channels;
 
 /// <summary>
-/// This Channel is used to deploy .net / xna runtimes to the zune into a container that 
-/// can be referenced by game titles. 
+/// This Channel is used to deploy .net / XNA runtimes to the Zune into a container that
+/// can be referenced by game titles.
 /// </summary>
 /// <remarks>
-/// The runtime token Zune.v4.0.Beta should be used to deploy the latest available version of the xna runtime 
+/// The runtime token Zune.v4.0.Beta should be used to deploy the latest available version of the XNA runtime
 /// </remarks>
 /// <param name="client">Device to connect to</param>
 public class RuntimeDeployChannel(Client client) : Channel(client, _channelGuid) {
-    public static readonly Guid _channelGuid = new Guid("30D0E81E-D272-4735-ABD3-918ADAD29FD3");
+    public static readonly Guid _channelGuid = new("30D0E81E-D272-4735-ABD3-918ADAD29FD3");
 
     /// <summary>
     /// Opens a runtime container
@@ -24,7 +24,7 @@ public class RuntimeDeployChannel(Client client) : Channel(client, _channelGuid)
     }
 
     /// <summary>
-    /// Cloe the currently open runtime container
+    /// Close the currently open runtime container
     /// </summary>
     public void CloseRuntimeContainer() {
         Invoke("CloseRuntimeContainer");

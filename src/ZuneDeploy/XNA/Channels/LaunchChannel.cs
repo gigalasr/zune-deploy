@@ -5,7 +5,7 @@ using ZuneDeploy.XNA.Protocol;
 namespace ZuneDeploy.XNA.Channels;
 
 public class LaunchChannel(Client client) : Channel(client, _channelGuid) {
-    public static readonly Guid _channelGuid = new Guid("A40D216D-FBD3-40d4-B852-DE77478C1475");
+    public static readonly Guid _channelGuid = new("A40D216D-FBD3-40d4-B852-DE77478C1475");
 
     /// <summary>
     /// Launch a title by its display name
@@ -19,7 +19,7 @@ public class LaunchChannel(Client client) : Channel(client, _channelGuid) {
     }
 
     /// <summary>
-    /// Launchy a title by its container id
+    /// Launch a title by its container id
     /// </summary>
     /// <param name="containerId">Id of container to launch</param>
     /// <param name="cmdLn">Command Line Options</param>
@@ -30,7 +30,7 @@ public class LaunchChannel(Client client) : Channel(client, _channelGuid) {
     }
 
     /// <summary>
-    /// Launch a title by its container id and optionally return to xna mode when exiting application
+    /// Launch a title by its container id and optionally return to XNA mode when exiting application
     /// </summary>
     /// <param name="containerId">Id of container to launch</param>
     /// <param name="cmdLn">Command Line Options</param>

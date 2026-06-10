@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace ZuneDeploy;
+namespace ZuneDeploy.Util;
 
 internal static class HexDump {
     public static void Dump(ReadOnlySpan<byte> bytes) {
@@ -37,7 +37,7 @@ internal static class HexDump {
     public static void DumpDiffPacket(ReadOnlySpan<byte> bytes, ReadOnlySpan<byte> compare) {
         const int bytesPerLine = 16;
         int length = Math.Max(bytes.Length, compare.Length);
-        StringBuilder s = new StringBuilder();
+        StringBuilder s = new();
 
         s.Append("--- Sequence Id ---\n");
 

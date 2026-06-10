@@ -1,5 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
-
 namespace ZuneDeploy.XNA.Data;
 
 public class ContainerImportException : Exception {
@@ -11,15 +9,8 @@ public class MissingConfigurationException : ContainerImportException {
     public MissingConfigurationException() { }
 }
 
-public class ParseConfigurationException : ContainerImportException {
-    public ParseConfigurationException(string reason, int line) : base($"Syntax error on line {line}: {reason}") { }
-}
+public class ParseConfigurationException(string reason, int line)
+    : ContainerImportException($"Syntax error on line {line}: {reason}") { }
 
-public class ContainerPathNotFoundException : ContainerImportException {
-    public ContainerPathNotFoundException(string path, string resource) : base($"Could not find path: '{path}' for resource '{resource}'.") { }
-}
-
-// public class MissingKeyException : ContainerImportException {
-
-//     public MissingKeyException(string key) : base($"The required key '{key}' is missing in the configuration") { }
-// }
+public class ContainerPathNotFoundException(string path, string resource)
+    : ContainerImportException($"Could not find path: '{path}' for resource '{resource}'.") { }

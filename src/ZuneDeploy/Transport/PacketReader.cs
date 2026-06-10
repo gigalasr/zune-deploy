@@ -4,24 +4,24 @@ namespace ZuneDeploy.Transport;
 
 /**
  * A Packet contains a list of Commands and Messages.
- * Commands are listed first and followed by Messages. 
- * 
+ * Commands are listed first and followed by Messages.
+ *
  * Structure:
  * 0000 - 0003: Sequence Id
  * 0004 - 1239: Command/Message/Terminator
- * 1240 - 1243: Random Bytes 
+ * 1240 - 1243: Random Bytes
  * 1244 - 1263: SHA1 Hash
  *
  * Message
  * [streamId][len_hi][len_low][payload]
- * 
+ *
  * Command (len includes type and args)
  * [0][len_hi][len_low][type][args]
  *
  * Terminator -> Last 3 bytes of the payload have to be 0 !
  * [0][0][0]
  */
-internal class PacketReader {
+internal class PacketReader(StreamCollection streams, uint sequenceId = 0) {
     public event EventHandler<StreamClosedCommand>? OnStreamClosed;
     public event EventHandler<StreamOpenedCommand>? OnStreamOpened;
     public event EventHandler<AckCancelCommand>? OnAckCancel;
@@ -30,18 +30,12 @@ internal class PacketReader {
     public event EventHandler<RebootingCommand>? OnHostRebooting;
     public event EventHandler<KeepAliveCommand>? OnKeepAlive;
     public event EventHandler<DataProcessedCommand>? OnDataProcessed;
+    public event EventHandler<ClientErrorCommand>? OnClientError;
 
-
-    private uint _sequenceId = 0;
-    private List<ReceivableCommand> _commands = new();
-    private List<Message> _messages = new();
-    private StreamCollection _streams;
-
-    public PacketReader(StreamCollection streams, uint sequenceId = 0) {
-        _streams = streams;
-        _sequenceId = sequenceId;
-    }
-
+    private uint _sequenceId = sequenceId;
+    private readonly List<ReceivableCommand> _commands = [];
+    private readonly List<Message> _messages = [];
+    private readonly StreamCollection _streams = streams;
 
     public void ParseAndDispatch(byte[] buffer) {
         Deserialize(buffer);
@@ -74,7 +68,7 @@ internal class PacketReader {
             throw new ArgumentException($"A packet buffer must have a length of {Packet.PACKET_LENGTH}");
         }
 
-        // It looks like the zune does not send a hash at the end :D
+        // It looks like the Zune does not send a hash at the end :D
         //Packet.ValidatePacket(buffer, GetNextSequenceId());
         Packet.ValidateSequenceId(buffer, GetNextSequenceId());
         Packet.ValidateMessageList(buffer);

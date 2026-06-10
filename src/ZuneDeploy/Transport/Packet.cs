@@ -1,6 +1,5 @@
 using System.Buffers.Binary;
 using System.Security.Cryptography;
-using ZuneDeploy;
 using ZuneDeploy.Transport;
 
 internal static class Packet {
@@ -49,7 +48,7 @@ internal static class Packet {
     /// <summary>
     /// Create a slice that includes the packet's payload area and sequence Id.
     /// This is essentially the same as <see cref="Packet.PayloadSpan"/>, but it starts 4 bytes earlier.
-    /// This span is mainly used to compute the hash of the packet. 
+    /// This span is mainly used to compute the hash of the packet.
     /// </summary>
     /// <param name="buffer">span to create slice from</param>
     /// <returns>Slice that includes the sequence id and payload area</returns>

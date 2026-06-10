@@ -10,8 +10,8 @@ public class Channel : IDisposable {
         [new Parameter("ChannelId", ParameterType.Guid)]
     );
 
-    private Schema _schema;
-    private ServiceStream _stream;
+    private readonly Schema _schema;
+    private readonly ServiceStream _stream;
     private bool _disposed = false;
 
     public event EventHandler<ushort>? OnBytesWritten;
