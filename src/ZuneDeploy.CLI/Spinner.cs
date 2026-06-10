@@ -25,18 +25,15 @@ public static class Spinner {
     private static Task? _spinnerTask = null;
     private static CancellationTokenSource _cts = new();
 
-    public static void SpinFor(string label, Action work) {
-        Start(label);
-        work();
-        Trace.Assert(label.Contains("ing"));
-        Stop(label.Replace("ing", "ed"));
+    public static void SpinFor(string label, Action work, string? finalLabel = null) {
+        SpinFor<object?>(label, () => { work(); return null; }, finalLabel);
     }
 
-    public static T SpinFor<T>(string label, Func<T> work) {
+    public static T SpinFor<T>(string label, Func<T> work, string? finalLabel = null) {
         Start(label);
         T result = work();
         Trace.Assert(label.Contains("ing"));
-        Stop(label.Replace("ing", "ed"));
+        Stop(finalLabel ?? label.Replace("ing", "ed"));
         return result;
     }
 

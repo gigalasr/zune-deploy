@@ -32,7 +32,7 @@ internal static class DeployVerb {
                 }
 
                 if (container.Thumbnail != null) {
-                    DeployFile(deployChan, container.Thumbnail);
+                    DeployFile(deployChan, container.Thumbnail, true);
                 }
 
                 Spinner.SpinFor("Uploading Container Metadata", () => deployChan.PutGamePropertiesEx(container));
@@ -43,7 +43,7 @@ internal static class DeployVerb {
                 LaunchApplication(zune, container);
             }
         } catch (ContainerImportException e) {
-            Spinner.Stop($"Failed to import game container: {e.Message}");
+            Spinner.Stop($"Failed to import application container: {e.Message}");
         } catch (Exception e) {
             Spinner.Stop($"Deploy Failed: {e.Message}", true);
         }
@@ -81,10 +81,14 @@ internal static class DeployVerb {
     }
 
     public static void LaunchApplication(Zune zune, ApplicationContainer container) {
+        using LaunchChannel launchChan = zune.OpenXnaLaunchChannel();
         Spinner.SpinFor("Launching Application", () => {
-            using LaunchChannel launchChan = zune.OpenXnaLaunchChannel();
             launchChan.LaunchInMode(container.ContainerId, "", true);
-            Spinner.SetLabel("Running");
         });
+        Spinner.SpinFor("Running", () => {
+            do {
+                Thread.Sleep(1000);
+            } while (launchChan.IsTitleRunning());
+        }, "Done");
     }
 }

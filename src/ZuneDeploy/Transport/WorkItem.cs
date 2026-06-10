@@ -7,10 +7,14 @@ internal record OpenStreamRequest : IWorkItem {
     public TaskCompletionSource<ServiceStream> Response { get; } = new();
 }
 
+internal record CloseStreamRequest : IWorkItem {
+    public required byte StreamId { init; get; }
+}
+
 internal record OpenConnectionRequest : IWorkItem {
     public TaskCompletionSource Response { get; } = new();
 }
 
-internal record CloseStreamRequest : IWorkItem {
-    public required byte StreamId { init; get; }
+internal record CloseConnectionRequest : IWorkItem {
+    public TaskCompletionSource Response { get; } = new();
 }

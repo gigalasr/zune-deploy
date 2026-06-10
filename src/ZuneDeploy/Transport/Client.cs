@@ -17,14 +17,19 @@ public class Client {
     private readonly PacketWriter _packetWriter;
 
     private readonly BlockingCollection<IWorkItem> _requests = [];
-    private readonly Dictionary<byte, IWorkItem> _pendingRequests = [];
+    private readonly Dictionary<int, IWorkItem> _pendingRequests = [];
 
     public void Close() {
-        // TODO: Implement the actual closing commands i.e. CommandType.Disconnect
-        //Console.WriteLine("Closing Connection...");
+        CloseInternal().GetAwaiter().GetResult();
         _conThreadRunning = false;
         _connectionThread.Join();
         MTP.CloseConnection(_deviceHandle);
+    }
+
+    private async Task CloseInternal() {
+        var request = new CloseConnectionRequest();
+        _requests.Add(request);
+        await request.Response.Task;
     }
 
     /// <summary>
@@ -133,6 +138,9 @@ public class Client {
 
     private void OnAckDisconnect(object? sender, AckDisconnectCommand info) {
         //Console.WriteLine($"AckDisconnect arg={info.Arg}");
+        if (_pendingRequests.TryGetValue(-1, out IWorkItem? req) && req is CloseConnectionRequest request) {
+            request.Response.SetResult();
+        }
     }
 
     private void OnHostRebooting(object? sender, RebootingCommand info) {
@@ -215,15 +223,17 @@ public class Client {
                     ServiceStream stream = _streamCollection.CreateStream(CloseStream);
                     _packetWriter.SendCommand(new OpenStreamCommand(stream.StreamId, req.ServiceId));
                     _pendingRequests.Add(stream.StreamId, req);
-                    //Console.WriteLine($"Requesting to open stream id={stream.StreamId} to service '{req.ServiceId}'");
                     break;
                 case CloseStreamRequest req:
                     _streamCollection.CloseStream(req.StreamId);
                     _packetWriter.SendCommand(new CloseStreamCommand(req.StreamId));
-                    //Console.WriteLine($"Requesting to close stream id={req.StreamId}");
                     break;
                 case OpenConnectionRequest req:
                     shouldContinueRunning = OpenConnectionAndShakeHands(req.Response);
+                    break;
+                case CloseConnectionRequest req:
+                    _packetWriter.SendCommand(new DisconnectCommand());
+                    _pendingRequests.Add(-1, req);
                     break;
                 default:
                     throw new Exception("Unknown Request");
