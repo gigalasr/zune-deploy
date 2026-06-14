@@ -1,14 +1,8 @@
-using System.Buffers.Binary;
-using System.Data.SqlTypes;
-using System.Reflection.Metadata;
 using System.Security.Cryptography;
 using ZuneDeploy.Transport;
 using ZuneDeploy.Util;
 
-namespace ZuneDeploy.Tests;
-
-
-
+namespace ZuneDeploy.Tests.Transport;
 
 public class PacketWriterTests {
     private static void AssertPayloadMatches(ReadOnlySpan<byte> expected, ReadOnlySpan<byte> actual) {

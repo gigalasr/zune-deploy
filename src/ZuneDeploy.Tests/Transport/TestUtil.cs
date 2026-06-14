@@ -1,8 +1,7 @@
-using System.Buffers.Binary;
 using System.Security.Cryptography;
 using ZuneDeploy.Transport;
 
-namespace ZuneDeploy.Tests;
+namespace ZuneDeploy.Tests.Transport;
 
 internal static class TestUtil {
     public static void AssertCommandsEqual(ReceivableCommand expected, ReceivableCommand actual) {

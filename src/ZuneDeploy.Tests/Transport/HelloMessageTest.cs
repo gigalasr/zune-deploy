@@ -1,6 +1,6 @@
 using ZuneDeploy.Transport;
 
-namespace ZuneDeploy.Tests;
+namespace ZuneDeploy.Tests.Transport;
 
 
 public class HelloMessageTest {

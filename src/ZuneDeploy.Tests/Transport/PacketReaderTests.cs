@@ -1,6 +1,6 @@
 using ZuneDeploy.Transport;
 
-namespace ZuneDeploy.Tests;
+namespace ZuneDeploy.Tests.Transport;
 
 public class PacketReaderTests {
     public static IEnumerable<object[]> GetParsingTestData() {
@@ -8,9 +8,9 @@ public class PacketReaderTests {
         yield return new object[] {
             TestUtil.FillPacket([
                 // Sequence Id
-                0x00, 0x00, 0x00, 0x06, 
+                0x00, 0x00, 0x00, 0x06,
                 // StreamOpenedCommand
-                0x00, 0x00, 0x04, 0xa2, 0x02, 0x10, 0x00, 
+                0x00, 0x00, 0x04, 0xa2, 0x02, 0x10, 0x00,
                 // StreamClosedCommand
                 0x00, 0x00, 0x02, 0xc1, 0x01
             ]),
@@ -26,7 +26,7 @@ public class PacketReaderTests {
         yield return new object[] {
             TestUtil.FillPacket([
                 // Sequence Id
-                0x00, 0x00, 0x00, 0x07, 
+                0x00, 0x00, 0x00, 0x07,
                 // Message
                 0x02, 0x00, 0x0e, 0x58, 0x4e, 0x41, 0x46, 0x54,
                 0x57, 0x02, 0x00, 0x00, 0x03, 0x02, 0x00, 0x00,
