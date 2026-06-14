@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using NativeGen;
 using ZuneDeploy.Util;
 
@@ -11,27 +12,18 @@ namespace ZuneDeploy.Transport;
 public class Client {
     private IntPtr _deviceHandle;
     private readonly Thread _connectionThread;
-    private volatile bool _conThreadRunning = true;
     private readonly StreamCollection _streamCollection;
     private readonly PacketReader _packetReader;
     private readonly PacketWriter _packetWriter;
 
     private readonly BlockingCollection<IWorkItem> _requests = [];
-    private readonly Dictionary<int, IWorkItem> _pendingRequests = [];
+    private readonly Dictionary<byte, IWorkItem> _pendingRequests = [];
 
     public DeviceFamily DeviceFamily { private set; get; }
 
     public void Close() {
-        CloseInternal().GetAwaiter().GetResult();
-        _conThreadRunning = false;
+        _requests.Add(new CloseConnectionRequest());
         _connectionThread.Join();
-        MTP.CloseConnection(_deviceHandle);
-    }
-
-    private async Task CloseInternal() {
-        var request = new CloseConnectionRequest();
-        _requests.Add(request);
-        await request.Response.Task;
     }
 
     /// <summary>
@@ -139,10 +131,8 @@ public class Client {
     }
 
     private void OnAckDisconnect(object? sender, AckDisconnectCommand info) {
+        // AFAIK the Zune will not send this, instead it will close the connection instantly
         //Console.WriteLine($"AckDisconnect arg={info.Arg}");
-        if (_pendingRequests.TryGetValue(-1, out IWorkItem? req) && req is CloseConnectionRequest request) {
-            request.Response.SetResult();
-        }
     }
 
     private void OnHostRebooting(object? sender, RebootingCommand info) {
@@ -167,7 +157,6 @@ public class Client {
         int sendResult = MTP.SendData(_deviceHandle, data, data.Length);
 
         if ((Result)sendResult != Result.Ok) {
-            _conThreadRunning = false; // TODO: Propper Error Handling
             Console.WriteLine("Non OK Result (send): " + sendResult);
             return false;
         }
@@ -179,7 +168,6 @@ public class Client {
     private int ReadRaw(byte[] destination) {
         var reuslt = (Result)MTP.PollData(_deviceHandle, destination, destination.Length, out int length);
         if (reuslt != Result.Ok) {
-            _conThreadRunning = false; // TODO: Propper Error Handling
             Console.WriteLine("Non OK Result (recieve): " + reuslt);
             return -1;
         }
@@ -236,7 +224,7 @@ public class Client {
                     break;
                 case CloseConnectionRequest req:
                     _packetWriter.SendCommand(new DisconnectCommand());
-                    _pendingRequests.Add(-1, req);
+                    shouldContinueRunning = false;
                     break;
                 default:
                     throw new Exception("Unknown Request");
@@ -249,19 +237,27 @@ public class Client {
     private void PollAndSendData() {
         byte[] incomingPacket = new byte[Packet.PACKET_LENGTH];
 
-        while (_conThreadRunning) {
-            if (!ProcessWorkItems()) {
-                break;
-            }
+        // If the initial connection fails, do not retry
+        if (!ProcessWorkItems()) { return; }
+
+        bool shouldRun = true;
+        while (shouldRun) {
+            shouldRun = ProcessWorkItems();
 
             if (_packetWriter.GetNextPacket(out byte[]? outgoingPacket)) {
                 if (outgoingPacket == null) {
                     throw new Exception("Packet was null");
                 }
-                SendRaw(outgoingPacket!);
+
+                if (!SendRaw(outgoingPacket!)) {
+                    break;
+                }
             }
 
-            if (ReadRaw(incomingPacket) > 0) {
+            int read = ReadRaw(incomingPacket);
+            if (read == -1) {
+                break;
+            } else if (read > 0) {
                 _packetReader.ParseAndDispatch(incomingPacket);
             } else {
                 // The original driver waits 50ms when the Zune has nothing to send.
@@ -272,5 +268,9 @@ public class Client {
             }
         }
 
+        // Give the Zune some time
+        Thread.Sleep(500);
+
+        MTP.CloseConnection(_deviceHandle);
     }
 }

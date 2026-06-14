@@ -1,6 +1,9 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
+using ZuneDeploy.Transport;
 
 namespace ZuneDeploy.XNA.Data;
 
@@ -9,13 +12,13 @@ public record DeployConfiguration {
     public required string DisplayName { init; get; }
     public required string? Description { init; get; }
     public required string EntryPoint { init; get; }
-    public required string RuntimeToken { init; get; }
+    public required string RuntimeToken { set; get; }
     public required string SourceFolderName { init; get; }
     public required string? ThumbnailFileName { init; get; }
+    public required DeviceCompatibility Compatibility { init; get; }
 
-    protected static string DeployKitConfigName = "application.cfg";
-    protected static string ZuneDeployConfigName = "app.json";
-
+    protected static readonly string DeployKitConfigName = "application.cfg";
+    protected static readonly string ZuneDeployConfigName = "app.json";
 
     public static DeployConfiguration FromDeployKitConfiguration(string path) {
         return FromDeployKitConfiguration(File.ReadAllLines(path));
@@ -55,6 +58,8 @@ public record DeployConfiguration {
 
         config.TryGetValue("thumbnail", out string? thumbnail);
         config.TryGetValue("description", out string? description);
+        config.TryGetValue("compatibility", out string? rawCompatibility);
+
 
         return new DeployConfiguration() {
             ContainerId = Guid.Parse(config["guid"]),
@@ -63,7 +68,23 @@ public record DeployConfiguration {
             EntryPoint = config["exec"],
             RuntimeToken = RuntimeContainer.DefaultRuntimeToken,
             SourceFolderName = config["src"],
-            ThumbnailFileName = thumbnail
+            ThumbnailFileName = thumbnail,
+            Compatibility = ParseCompatibility(rawCompatibility)
+        };
+    }
+
+    private static DeviceCompatibility ParseCompatibility(string? raw) {
+        if (raw == null) {
+            return DeviceCompatibility.ANY;
+        }
+
+        raw = raw.Trim().ToLower();
+
+        return raw switch {
+            "any" => DeviceCompatibility.ANY,
+            "hd" => DeviceCompatibility.ZUNE_HD_ONLY,
+            "sd" => DeviceCompatibility.ZUNE_SD_ONLY,
+            _ => throw new InvalidValueException("compatibility", "Compatibility has to by one of { any, hd, sd }")
         };
     }
 
@@ -94,7 +115,7 @@ public record ApplicationContainer : DeployConfiguration {
         } else if (Path.Exists(zuneDeployConfig)) {
             config = DeployConfiguration.FromZuneDeployConfiguration(zuneDeployConfig);
         } else {
-            throw new MissingConfigurationException();
+            throw new MissingConfigurationException(deployKitConfig);
         }
 
         // Check if Thumbnail exists
@@ -105,7 +126,7 @@ public record ApplicationContainer : DeployConfiguration {
             if (!File.Exists(thumbnailPath)) {
                 throw new ContainerPathNotFoundException(thumbnailPath, "thumbnail");
             }
-            thumbnail = new ContainerFile(thumbnailPath, config.ThumbnailFileName);
+            thumbnail = new ContainerFile(folder.FullName, thumbnailPath);
         }
 
         // Check if entry point executable exists
@@ -116,18 +137,26 @@ public record ApplicationContainer : DeployConfiguration {
 
         // Collect all files in src folder
         string sourcePath = Path.Join(folder.FullName, config.SourceFolderName);
-        string NormalizeFilePath(string path) {
-            return path.Substring(sourcePath.Length + 1).Replace("/", "\\");
-        }
-        var files = Directory.EnumerateFiles(sourcePath, "*.*", SearchOption.AllDirectories)
-            .Select(f => new ContainerFile(f, NormalizeFilePath(f)))
-            .ToList();
+        var files = ContainerFile.CollectFromFolder(sourcePath);
 
         return new ApplicationContainer(config, files.AsReadOnly(), thumbnail);
     }
 
+    public bool IsCompatible(DeviceFamily family) {
+        if (Compatibility == DeviceCompatibility.ANY) {
+            return true;
+        } else if (Compatibility == DeviceCompatibility.ZUNE_HD_ONLY) {
+            return family == DeviceFamily.Pavo;
+        } else if (Compatibility == DeviceCompatibility.ZUNE_SD_ONLY) {
+            return family is DeviceFamily.Draco or DeviceFamily.Keel or DeviceFamily.Scorpius;
+        }
+
+        throw new UnreachableException();
+    }
+
     public override string ToString() {
-        StringBuilder sb = new StringBuilder();
+        StringBuilder sb = new();
+        sb.AppendLine("Application Container:");
         sb.AppendLine($"Name:          {DisplayName}");
         if (Description != null) {
             sb.AppendLine($"Description:   {Description}");

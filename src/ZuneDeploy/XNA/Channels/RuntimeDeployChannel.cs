@@ -1,4 +1,5 @@
 using ZuneDeploy.Transport;
+using ZuneDeploy.XNA.Data;
 using ZuneDeploy.XNA.Protocol;
 
 namespace ZuneDeploy.XNA.Channels;
@@ -11,7 +12,7 @@ namespace ZuneDeploy.XNA.Channels;
 /// The runtime token Zune.v4.0.Beta should be used to deploy the latest available version of the XNA runtime
 /// </remarks>
 /// <param name="client">Device to connect to</param>
-public class RuntimeDeployChannel(Client client) : Channel(client, _channelGuid) {
+public class RuntimeDeployChannel(Client client) : Channel(client, _channelGuid), IFileDeployChannel {
     public static readonly Guid _channelGuid = new("30D0E81E-D272-4735-ABD3-918ADAD29FD3");
 
     /// <summary>
@@ -51,7 +52,17 @@ public class RuntimeDeployChannel(Client client) : Channel(client, _channelGuid)
         return Invoke<bool>("IsRuntimeAvailable", NormalizeRuntimeToken(runtimeToken), (int)exactVersion);
     }
 
-    // The original driver does this, don't ask me why
+    /// <summary>
+    /// Check if a given runtime is available
+    /// </summary>
+    /// <param name="container">Container to check for availability</param>
+    /// <returns>true if runtime is available</returns>
+    public bool IsRuntimeAvailable(RuntimeContainer container) {
+        return Invoke<bool>("IsRuntimeAvailable", NormalizeRuntimeToken(container.RuntimeToken), (int)container.Version);
+    }
+
+    // The original driver does this
+    // and the Zune seems to dislike any other runtime token.
     private static string NormalizeRuntimeToken(string runtimeToken) {
         if (runtimeToken == "Zune.v3.1") {
             return "Zune.v4.0.Beta";

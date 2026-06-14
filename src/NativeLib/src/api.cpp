@@ -1,6 +1,5 @@
 #include "api.hpp"
 #include "ByteArray.h"
-#include "log.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -72,8 +71,10 @@ auto OpenConnection(ZuneDevice::Ptr* out_devicePtr) -> Result {
 }
 
 auto CloseConnection(ZuneDevice::Ptr device) -> void {
-    device->session->XnaCloseSession();
-    delete device;
+    try {
+        device->session->XnaCloseSession();
+        delete device;
+    } catch (...) { }
 }
 
 auto PollData(ZuneDevice::Ptr device, std::uint8_t* out_buffer, std::size_t size, std::size_t* out_bytesRead)

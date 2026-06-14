@@ -1,6 +1,6 @@
 using ZuneDeploy.XNA.Data;
 
-namespace ZuneDeploy.Tests;
+namespace ZuneDeploy.Tests.XNA.Data;
 
 
 public class ApplicationContainerTests {

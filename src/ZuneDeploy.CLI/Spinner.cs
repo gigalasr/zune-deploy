@@ -42,28 +42,31 @@ public static class Spinner {
     }
 
     public static void Start(string label) {
-        if (_spinnerTask != null) {
-            SetLabel(label);
-            return;
-        }
+        lock (_lock) {
+            if (_spinnerTask != null) {
+                SetLabel(label);
+                return;
+            }
 
-        _label = label;
-        _spinnerRow = Console.CursorTop;
-        _cts = new CancellationTokenSource();
-        Console.SetOut(_newOut);
-        _spinnerTask = Task.Run(async () => { await Spin(_cts.Token); });
+            _label = label;
+            _spinnerRow = Console.CursorTop;
+            _cts = new CancellationTokenSource();
+            Console.SetOut(_newOut);
+            _spinnerTask = Task.Run(async () => { await Spin(_cts.Token); });
+        }
     }
 
     public static void Stop(string finalLabel, bool faulted = false) {
-        if (_spinnerTask == null) {
-            Console.WriteLine(finalLabel);
-            return;
-        }
-
-        _cts.Cancel();
-        _spinnerTask.Wait();
         lock (_lock) {
+            if (_spinnerTask == null) {
+                Console.WriteLine(finalLabel);
+                return;
+            }
+
+            _cts.Cancel();
+            _spinnerTask.Wait();
             _spinnerTask = null;
+
             Console.SetOut(_originalOut);
             Console.SetCursorPosition(0, _spinnerRow);
             var symbol = faulted ? _failureSymbol : _successSymbol;

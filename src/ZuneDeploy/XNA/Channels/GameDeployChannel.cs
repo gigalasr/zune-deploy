@@ -4,7 +4,7 @@ using ZuneDeploy.XNA.Protocol;
 
 namespace ZuneDeploy.XNA.Channels;
 
-public class GameDeployChannel(Client client) : Channel(client, _channelGuid) {
+public class GameDeployChannel(Client client) : Channel(client, _channelGuid), IFileDeployChannel {
     private static readonly Guid _channelGuid = new("AA3C2881-4EB9-4af6-8137-635C2E64CE4A");
 
     public bool OpenContainer(ApplicationContainer container) {
@@ -73,6 +73,12 @@ public class GameDeployChannel(Client client) : Channel(client, _channelGuid) {
     public bool RemoveFileFromContainer(string pathInContainer) {
         ChannelValidation.ValidateFilePath(pathInContainer);
         return Invoke<bool>("RemoveFileFromContainer", pathInContainer);
+    }
+
+
+
+    public object PutGameProperties(ApplicationContainer container, int xnaFrameworkVersion) {
+        return PutGameProperties(container.ContainerId, container.DisplayName, container.Description ?? "", "", container.EntryPoint, xnaFrameworkVersion);
     }
 
     public object PutGameProperties(Guid containerId, string name, string description, string copyright, string startupAssembly, int xnaFrameworkVersion) {
