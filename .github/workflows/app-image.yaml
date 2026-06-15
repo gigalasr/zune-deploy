@@ -5,17 +5,19 @@ name: Publish App Image
       - main
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu:26.04
     container:
       image: ubuntu:26.04
     steps:
-      - name: Install Dependencies
-        run: scripts/install-dependencies.sh
+      - name: Install git
+        run: apt-get install -y git
       - name: Checkout git repository
         uses: actions/checkout@v6
         with:
           lfs: true
           submodules: true
           fetch-depth: 0
+      - name: Install Dependencies
+        run: scripts/install-dependencies.sh
       - name: Build App Image
         run: scripts/build-app-image.sh
