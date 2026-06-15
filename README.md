@@ -6,7 +6,7 @@ _This project is not affiliated with or endorsed by Microsoft_
 
 <div align=center>
 
-![logo](docs/logo.png)
+![logo](docs/logo-small.png)
 
 CLI tool for deploying XNA applications to the Zune on Linux.
 
