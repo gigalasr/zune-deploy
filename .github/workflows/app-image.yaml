@@ -10,7 +10,7 @@ jobs:
       image: ubuntu:26.04
     steps:
       - name: Install git
-        run: apt-get update; apt-get install -y git
+        run: apt-get update; apt-get install -y git git-lfs
       - name: Checkout git repository
         uses: actions/checkout@v6
         with:
