@@ -1,7 +1,17 @@
 # Zune Deploy
+[![Publish App Image](https://github.com/gigalasr/zune-deploy/actions/workflows/app-image.yaml/badge.svg?branch=main)](https://github.com/gigalasr/zune-deploy/actions/workflows/app-image.yaml)
+[![Run Tests](https://github.com/gigalasr/zune-deploy/actions/workflows/tests.yaml/badge.svg)](https://github.com/gigalasr/zune-deploy/actions/workflows/tests.yaml)
+
 _This project is not affiliated with or endorsed by Microsoft_
 
+<div align=center>
+
+![logo](docs/logo.png)
+
 CLI tool for deploying XNA applications to the Zune on Linux.
+
+</div>
+
 
 ## Build
 ```shell
