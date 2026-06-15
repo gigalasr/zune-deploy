@@ -16,7 +16,7 @@ CLI tool for deploying XNA applications to the Zune on Linux.
 ## Build
 First install the necessary dependencies:
 ```shell
-dotnet-sdk-10.0 build-essential cmake libssl-dev file
+dotnet-sdk-10.0 build-essential cmake libssl-dev 
 ```
 
 Then simply run:
