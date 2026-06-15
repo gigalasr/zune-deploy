@@ -1,0 +1,21 @@
+name: Publish App Image
+"on":
+  push:
+    branches:
+      - main
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:26.04
+    steps:
+      - name: Checkout git repository
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+          submodules: true
+          fetch-depth: 0
+      - name: Install Dependencies
+        run: scripts/install-dependencies.sh
+      - name: Build App Image
+        run: scripts/build-app-image.sh
