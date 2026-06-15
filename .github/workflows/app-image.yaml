@@ -10,7 +10,7 @@ jobs:
       image: ubuntu:26.04
     steps:
       - name: Checkout git repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           lfs: true
           submodules: true
