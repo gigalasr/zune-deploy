@@ -26,10 +26,14 @@ mkdir $BUILD_DIR
 dotnet restore -r linux-x64
 dotnet publish -c Release -r linux-x64 --self-contained true -o $DOTNET_PUBLISH_DIR -v:d src/$DOTNET_PROJECT_NAME
 
+
 # Setup AppImage
 mkdir -p $APPIMAGE_BIN
 mv $DOTNET_PUBLISH_DIR/* $APPIMAGE_BIN
 cp docs/.mtpz-data $APPIMAGE_ROOT
+
+# Fix loader path
+patchelf --set-rpath '$ORIGIN' "$APPIMAGE_BIN/libzune-deploy-native.so"
 
 # Run File
 cat >$APPIMAGE_APPRUN << 'EOF'
