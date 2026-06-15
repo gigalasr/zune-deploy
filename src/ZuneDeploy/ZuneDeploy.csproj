@@ -40,9 +40,9 @@
       <None Include="../NativeLib/build/libzune-deploy-native.so"
             CopyToOutputDirectory="PreserveNewest"
             Link="libzune-deploy-native.so" />
-      <None Include="../NativeLib/build/vendor/android-file-transfer-linux/libmtp-ng.so"
+      <None Include="../NativeLib/build/vendor/android-file-transfer-linux/libmtp-ng.so.4.6"
             CopyToOutputDirectory="PreserveNewest"
-            Link="libmtp-ng.so" />
+            Link="libmtp-ng.so.4.6" />
     </ItemGroup>
   </Target>
 
