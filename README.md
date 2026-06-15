@@ -14,8 +14,22 @@ CLI tool for deploying XNA applications to the Zune on Linux.
 
 
 ## Build
+First install the necessary dependencies:
+```shell
+dotnet-sdk-10.0 build-essential cmake libssl-dev file
+```
+
+Then simply run:
 ```shell
 dotnet build
+```
+
+## Usage
+To deploy a Deploy Kit folder to a Zune you can use the `deploy` subcommand.
+This will automatically deploy the XNA runtime and all files in the provided folder:
+
+```
+zcli deploy [path to folder]
 ```
 
 ---
