@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gradient_1" gradientUnits="userSpaceOnUse" x1="201.563" y1="60.671" x2="-1.471" y2="201.249">
+      <stop offset="0" stop-color="#E64E8B" />
+      <stop offset="1" stop-color="#ED8F3B" />
+    </linearGradient>
+  </defs>
+  <g>
+    <rect width="256" height="256" fill="#D3D3D3" fill-rule="evenodd" />
+  </g>
+</svg>

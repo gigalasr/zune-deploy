@@ -11,7 +11,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-      <ProjectReference Include="../SourceGenerators/SourceGenerators.csproj" 
+      <ProjectReference Include="../SourceGenerators/SourceGenerators.csproj"
                         OutputItemType="Analyzer"
                         ReferenceOutputAssembly="false" />
   </ItemGroup>
@@ -33,21 +33,23 @@
     <Exec ConsoleToMSBuild="true" Command="cmake -S ../NativeLib -B ../NativeLib/build" />
     <Exec ConsoleToMSBuild="true" Command="cmake --build ../NativeLib/build" />
   </Target>
+  <Target Name="CopyNative"
+          BeforeTargets="GetCopyToOutputDirectoryItems;AssignTargetPaths"
+          DependsOnTargets="BuildNativeLib">
+    <ItemGroup>
+      <None Include="../NativeLib/build/libzune-deploy-native.so"
+            CopyToOutputDirectory="PreserveNewest"
+            Link="libzune-deploy-native.so" />
+      <None Include="../NativeLib/build/vendor/android-file-transfer-linux/libmtp-ng.so"
+            CopyToOutputDirectory="PreserveNewest"
+            Link="libmtp-ng.so" />
+    </ItemGroup>
+  </Target>
+
   <!-- <Target Name="CopyNative" AfterTargets="Build">
       <Copy SourceFiles="../NativeLib/build/libzune-deploy-native.so"
             DestinationFolder="$(OutputPath)" />
       <Copy SourceFiles="../NativeLib/build/vendor/android-file-transfer-linux/libmtp-ng.so"
             DestinationFolder="$(OutputPath)" />
   </Target> -->
-  <ItemGroup>
-    <ContentWithTargetPath Include="../NativeLib/build/libzune-deploy-native.so">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <TargetPath>libzune-deploy-native.so</TargetPath>
-    </ContentWithTargetPath>
-    <ContentWithTargetPath Include="../NativeLib/build/vendor/android-file-transfer-linux/libmtp-ng.so">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <TargetPath>libmtp-ng.so</TargetPath>
-    </ContentWithTargetPath>
-  </ItemGroup>
-
 </Project>

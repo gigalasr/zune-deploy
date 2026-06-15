@@ -14,10 +14,24 @@
 #include <usb/Context.h>
 #include <usb/DeviceDescriptor.h>
 #include <vector>
+#include <filesystem>
+
+namespace fs = std::filesystem;
 
 std::string GetMtpzDataPath() {
     char* home = getenv("HOME");
-    return std::string(home ? home : ".") + "/.mtpz-data";
+    fs::path mtpz(".mtpz-data");
+
+    if(home == nullptr) {
+        return mtpz;
+    }
+
+    fs::path home_variant = fs::path(home) / mtpz;
+    if(fs::exists(home_variant)) {
+        return home_variant;
+    }
+
+    return mtpz;
 }
 
 ZuneDevice::ZuneDevice(const mtp::ByteArray& identification, mtp::DevicePtr& device, mtp::SessionPtr& session, mtp::TrustedAppPtr& ta)
