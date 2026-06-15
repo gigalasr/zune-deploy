@@ -21,3 +21,9 @@ jobs:
         run: scripts/install-dependencies.sh
       - name: Build App Image
         run: scripts/build-app-image.sh
+      - name: Upload App Image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zcli.AppImage
+          path: "build/zcli.AppImage"
+          if-no-files-found: error
