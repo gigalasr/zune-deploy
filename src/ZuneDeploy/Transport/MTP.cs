@@ -1,22 +1,37 @@
 using System.Runtime.InteropServices;
-using System.Runtime.InteropServices.Marshalling;
+using NativeGen;
 
 namespace ZuneDeploy.Transport;
 
 static internal partial class MTP {
-    [LibraryImport("zune-deploy-native")]
-    internal static partial int OpenConnection(out IntPtr device);
+    internal static int OpenConnection(out IntPtr device) {
+        device = IntPtr.Zero;
+        var result = ZuneConnection.Open(out var connection);
+        if (result == Result.Ok) {
+            device = GCHandle.ToIntPtr(GCHandle.Alloc(connection));
+        }
+        return (int)result;
+    }
 
-    [LibraryImport("zune-deploy-native")]
+    internal static void CloseConnection(IntPtr device) {
+        var handle = GCHandle.FromIntPtr(device);
+        Get(device).Close();
+        handle.Free();
+    }
 
-    internal static partial void CloseConnection(IntPtr device);
+    internal static int PollData(IntPtr device, byte[] buffer, int size, out int bytesRead) {
+        return (int)Get(device).PollData(buffer.AsSpan(0, size), out bytesRead);
+    }
 
-    [LibraryImport("zune-deploy-native")]
-    internal static partial int PollData(IntPtr device, [MarshalUsing(CountElementName = "size")] byte[] buffer, int size, out int bytesRead);
+    internal static int SendData(IntPtr device, byte[] buffer, int size) {
+        return (int)Get(device).SendData(buffer.AsSpan(0, size));
+    }
 
-    [LibraryImport("zune-deploy-native")]
-    internal static partial int SendData(IntPtr device, [MarshalUsing(CountElementName = "size")] byte[] buffer, int size);
+    internal static byte GetDeviceFamily(IntPtr device) {
+        return Get(device).DeviceFamily;
+    }
 
-    [LibraryImport("zune-deploy-native")]
-    internal static partial byte GetDeviceFamily(IntPtr device);
+    private static ZuneConnection Get(IntPtr device) {
+        return (ZuneConnection)GCHandle.FromIntPtr(device).Target!;
+    }
 }

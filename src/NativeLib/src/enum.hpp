@@ -6,5 +6,7 @@ enum class Result {
     ErrorBufferTooSmall = 3,
     ErrorConnectionFailed = 4,
     ErrorReadFailed = 5,
-    ErrorSendFailed = 6
+    ErrorSendFailed = 6,
+    ErrorAccessDenied = 7,
+    ErrorDeviceBusy = 8
 };

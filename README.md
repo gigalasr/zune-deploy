@@ -8,7 +8,7 @@ _This project is not affiliated with or endorsed by Microsoft_
 
 ![logo](docs/logo-small.png)
 
-CLI tool for deploying XNA applications to the Zune on Linux.
+CLI tool for deploying XNA applications to the Zune on Linux / MacOS / Windows.
 
 </div>
 
@@ -32,7 +32,7 @@ dotnet build
 ```
 
 ## Usage
-First, make sure that a `.mtpz-data` file is located in your home directory.
+First, make sure that a `.mtpz-data` file is located in your home directory (`%USERPROFILE%` on Windows).
 You can find a copy of the `.mtpz-data` file in the `docs` folder.
 
 To deploy a Deploy Kit folder to a Zune you can use the `deploy` subcommand.
@@ -41,6 +41,9 @@ This will automatically deploy the XNA runtime and all files in the provided fol
 ```
 zcli deploy [path to folder]
 ```
+
+On Windows you need to first install WinUSB driver.
+To simplify installation I would suggest using [Zadig](https://zadig.akeo.ie/).
 
 ---
 

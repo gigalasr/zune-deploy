@@ -32,6 +32,7 @@
   </PropertyGroup>
 
   <Target Name="BuildNativeLib"
+          Condition="!$([MSBuild]::IsOSPlatform('Windows'))"
           BeforeTargets="Build"
           Inputs="../NativeLib/CMakeLists.txt"
           Outputs="../NativeLib/build/$(NativeLibFile)">
@@ -39,6 +40,7 @@
     <Exec ConsoleToMSBuild="true" Command="cmake --build ../NativeLib/build" />
   </Target>
   <Target Name="CopyNative"
+          Condition="!$([MSBuild]::IsOSPlatform('Windows'))"
           BeforeTargets="GetCopyToOutputDirectoryItems;AssignTargetPaths"
           DependsOnTargets="BuildNativeLib">
     <ItemGroup>

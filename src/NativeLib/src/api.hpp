@@ -1,32 +1,18 @@
-#include "ByteArray.h"
-#include "mtpz/TrustedApp.h"
-#include "ptp/PipePacketer.h"
-#include "ptp/Session.h"
 #include <cstddef>
 #include <cstdint>
-#include <ptp/Device.h>
+#include <usb/BulkPipe.h>
 
 #include "enum.hpp"
 
-struct ZuneDevice {
-    using Ptr = ZuneDevice*;
+struct ZuneTransport {
+    using Ptr = ZuneTransport*;
 
-    ZuneDevice(const mtp::ByteArray& identification, mtp::DevicePtr& device, mtp::SessionPtr& session, mtp::TrustedAppPtr& ta);
-    ZuneDevice(const mtp::ByteArray& identification, mtp::DevicePtr& device, mtp::SessionPtr& session);
-    ~ZuneDevice();
-
-    mtp::ByteArray identification;
-    mtp::DevicePtr device;
-    mtp::SessionPtr session;
-    mtp::TrustedAppPtr ta;
+    mtp::usb::BulkPipePtr pipe;
 };
 
 extern "C" {
-auto OpenConnection(ZuneDevice::Ptr* out_device_ptr) -> Result;
-auto CloseConnection(ZuneDevice::Ptr device) -> void;
-
-auto GetDeviceFamily(ZuneDevice::Ptr device) -> uint8_t;
-
-auto PollData(ZuneDevice::Ptr device, std::uint8_t* out_buffer, std::size_t size, std::size_t* out_bytesRead) -> Result;
-auto SendData(ZuneDevice::Ptr device, std::uint8_t* buffer, std::size_t size) -> Result;
+auto OpenTransport(std::uint16_t vendorId, std::uint16_t productId, ZuneTransport::Ptr* out_transport) -> Result;
+auto CloseTransport(ZuneTransport::Ptr transport) -> void;
+auto TransportWrite(ZuneTransport::Ptr transport, const std::uint8_t* buffer, std::size_t size, int timeoutMs) -> Result;
+auto TransportRead(ZuneTransport::Ptr transport, std::uint8_t* out_buffer, std::size_t size, std::size_t* out_bytesRead, int timeoutMs) -> Result;
 }
